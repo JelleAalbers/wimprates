@@ -1,0 +1,8 @@
+include HISTORY.rst
+include LICENSE
+include README.rst
+include requirements.txt
+
+recursive-include notebooks *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]

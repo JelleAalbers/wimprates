@@ -1,0 +1,17 @@
+Spin-dependent structure functions for Xe129 and Xe131 from figure 6 from:
+    Klos et al, "Large-scale nuclear structure calculations for spin-dependent WIMP scattering with chiral effective field theory currents"
+    https://arxiv.org/abs/1304.7684
+
+u = p^2 b^2 / 2 with 
+    p the momentum transfer
+    b = 2.2853 fm for 129Xe
+        2.2905 fm for 131Xe
+
+Since u is dimensionless, 
+    
+
+Curve traced by Jelle on 12 January 2018
+
+'up' and 'down' correspond to theoretical uncertainties.
+
+
