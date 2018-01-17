@@ -171,11 +171,7 @@ def sigma_erec(erec, v, mw, sigma_nucleon, interaction='SI'):
     :param v: WIMP speed (earth/detector frame)
     :param mw: Mass of WIMP
     :param sigma_nucleon: WIMP-nucleon cross-section
-    :param interaction: string describing DM-nucleus interaction. Options:
-        'SI' for spin-independent scattering, equal coupling to protons and neutrons)
-        'SD_n_xxx' for spin-dependent scattering
-            n can be 'n' or 'p' for neutron or proton coupling (at first order)
-            x can be 'central', 'up' or 'down' for theoretical uncertainty on structure function
+    :param interaction: string describing DM-nucleus interaction. See rate_wimps for options.
     """
     if interaction == 'SI':
         # Still assumes heavy mediator? McCabe mentions this in his Bremsstrahlung paper
@@ -342,3 +338,28 @@ def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI', progress_bar=Fal
                     v * observed_speed_dist(v),
                     vmin_w(w, mw), v_max, **kwargs
     )[0]
+
+
+def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elastic_nr', progress_bar=False, **kwargs):
+    """Differential rate per unit time, unit detector mass and unit recoil energy of WIMP-nucleus scattering
+    Use numericalunits to get variables in/out in the right units.
+
+    :param es: Energy of recoil (for elastic_nr) or bremsstrahlung photon (for bremsstrahlung)
+    :param mw: Mass of WIMP
+    :param sigma_nucleon: WIMP/nucleon cross-section
+    :param interaction: string describing DM-nucleus interaction. Options:
+            'SI' for spin-independent scattering, equal coupling to protons and neutrons)
+            'SD_n_xxx' for spin-dependent scattering
+                n can be 'n' or 'p' for neutron or proton coupling (at first order)
+                x can be 'central', 'up' or 'down' for theoretical uncertainty on structure function
+    :param modality: Detection mechanism, can be 'elastic_nr' or 'bremsstrahlung'
+    :param progress_bar: if True, show a progress bar during evaluation for multiple energies
+    :returns: numpy array of same length as es, differential WIMP-nucleus scattering rates
+
+    Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance).
+    """
+    dmechs = dict(elastic_nr=rate_elastic, bremsstrahlung=rate_bremsstrahlung)
+    if detection_mechanism not in dmechs:
+        raise NotImplementedError("Unsupported detection mechanism '%s'" % detection_mechanism)
+    return dmechs[detection_mechanism](es, mw=mw, sigma_nucleon=sigma_nucleon, interaction=interaction,
+                                       progress_bar=progress_bar, **kwargs)
