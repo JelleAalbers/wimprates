@@ -4,6 +4,7 @@ wimprates
 `https://github.com/JelleAalbers/wimprates`
 
 Differential rates of WIMP-nucleus scattering in the standard halo model
+
 Jelle Aalbers, 2018
 
 Features:
