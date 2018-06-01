@@ -346,13 +346,13 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elas
 
     :param es: Energy of recoil (for elastic_nr) or bremsstrahlung photon (for bremsstrahlung)
     :param mw: Mass of WIMP
-    :param sigma_nucleon: WIMP/nucleon cross-section
+    :param sigma_nucleon: WIMP-nucleon cross-section
     :param interaction: string describing DM-nucleus interaction. Options:
-            'SI' for spin-independent scattering, equal coupling to protons and neutrons)
+            'SI' for spin-independent scattering; equal coupling to protons and neutrons
             'SD_n_xxx' for spin-dependent scattering
                 n can be 'n' or 'p' for neutron or proton coupling (at first order)
                 x can be 'central', 'up' or 'down' for theoretical uncertainty on structure function
-    :param modality: Detection mechanism, can be 'elastic_nr' or 'bremsstrahlung'
+    :param detection_mechanism: Detection mechanism, can be 'elastic_nr' or 'bremsstrahlung'
     :param progress_bar: if True, show a progress bar during evaluation for multiple energies
     :returns: numpy array of same length as es, differential WIMP-nucleus scattering rates
 
@@ -363,3 +363,15 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elas
         raise NotImplementedError("Unsupported detection mechanism '%s'" % detection_mechanism)
     return dmechs[detection_mechanism](es, mw=mw, sigma_nucleon=sigma_nucleon, interaction=interaction,
                                        progress_bar=progress_bar, **kwargs)
+
+
+def rate_wimp_std(es, mw, sigma_nucleon, **kwargs):
+    """Differential rate per (ton day keV) of WIMP-nucleus scattering.
+    :param es: Recoil energies in keV
+    :param mw: WIMP mass in GeV/c^2
+    :param sigma_nucleon: WIMP-nucleon cross-section in cm^2
+    :returns: numpy array of same length as es
+
+    For more information, see documentation of rate_wimp.
+    """
+    return rate_wimp(es * nu.keV, mw * nu.GeV/nu.c0**2, sigma_nucleon * nu.cm**2) * (nu.keV * (1000 * nu.kg) * nu.year)

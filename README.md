@@ -3,15 +3,19 @@ wimprates
 
 `https://github.com/JelleAalbers/wimprates`
 
-Differential rates of WIMP-nucleus scattering in the standard halo model
+Differential rates of WIMP-nucleus scattering in the standard halo model.
 
 Jelle Aalbers, 2018
 
-Features:
+[Please see this simple example for usage.](https://github.com/JelleAalbers/blob/master/notebooks/Example.ipynb)
+
+Features
+--------
   - Spin-indendent and spin-dependent DM-nucleus scattering
   - Bremsstrahlung and elastic NR detection modes
 
-Limitations:
+Limitations
+-----------
  - Numeric integration is used to compute some differential rates, even in cases where exact expressions are known / could be derived.
  - The earth's motion w.r.t. to the sun is not taken into account: no annual modulation for you!
  - Not all functions are properly vectorized yet
