@@ -7,7 +7,7 @@ Differential rates of WIMP-nucleus scattering in the standard halo model.
 
 Jelle Aalbers, 2018
 
-[Please see this simple example for usage.](https://github.com/JelleAalbers/blob/master/notebooks/Example.ipynb)
+[Please see this simple example for usage.](https://github.com/JelleAalbers/wimprates/blob/master/notebooks/Example.ipynb)
 
 Features
 --------
