@@ -371,7 +371,7 @@ def rate_wimp_std(es, mw, sigma_nucleon, **kwargs):
     :param mw: WIMP mass in GeV/c^2
     :param sigma_nucleon: WIMP-nucleon cross-section in cm^2
     :returns: numpy array of same length as es
-
-    For more information, see documentation of rate_wimp.
+    
+    Further arguments are as for rate_wimp; see docstring of rate_wimp.
     """
     return rate_wimp(es * nu.keV, mw * nu.GeV/nu.c0**2, sigma_nucleon * nu.cm**2) * (nu.keV * (1000 * nu.kg) * nu.year)
