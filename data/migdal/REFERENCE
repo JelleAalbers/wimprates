@@ -1,0 +1,4 @@
+Xe.dat is from the attachment in archive submission of https://arxiv.org/abs/1707.07258
+Note the 'Additional note' at the end of that paper. 
+
+migdal_transition_ps.csv is just the same data, read into a pandas-friendly format (see the migdal example notebook)

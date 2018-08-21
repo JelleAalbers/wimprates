@@ -235,10 +235,10 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', progress_bar=False, 
         v_min, v_max, **kwargs
     )[0]
 
+
 ##
 # Elastic nuclear recoil + Bremsstrahlung
 ##
-
 
 # Load the X-ray form factor
 def to_itp(fn):
@@ -322,13 +322,12 @@ def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI', progress_bar=Fal
     
     Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance). 
     """
-    # This is duplicated from rate_bremsstrahlung, and it's quite close to just adding a np.vectorize decorator
-    # Hm....
     if isinstance(w, (list, np.ndarray)) and len(w):
-        return np.array([rate_bremsstrahlung(w=e, mw=mw, sigma_nucleon=sigma_nucleon,
-                                             interaction=interaction, progress_bar=progress_bar, **kwargs)
-                        for e in (tqdm if progress_bar else lambda x: x)(w)
-                        ])
+        return np.array([
+            rate_bremsstrahlung(w=e, mw=mw, sigma_nucleon=sigma_nucleon,
+                                interaction=interaction, progress_bar=progress_bar, **kwargs)
+            for e in (tqdm if progress_bar else lambda x: x)(w)
+        ])
 
     if vmin_w(w, mw) >= v_max:
         return 0
@@ -339,6 +338,100 @@ def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI', progress_bar=Fal
                     vmin_w(w, mw), v_max, **kwargs
     )[0]
 
+
+##
+# Migdal effect
+##
+
+# Differential transition probabilities for Xe vs energy (eV)
+df_migdal = pd.read_csv(data_file('migdal/migdal_transition_ps.csv'))
+
+# Relevant (n, l) electronic states
+migdal_states = df_migdal.columns.values.tolist()
+migdal_states.remove('E')
+
+# Binding energies of the relevant Xenon electronic states
+# From table II of 1707.07258
+binding_es_for_migdal = dict(zip(
+    migdal_states, 
+    np.array([3.5e4, 
+              5.4e3, 4.9e3, 
+              1.1e3, 9.3e2, 6.6e2,
+              2e2, 1.4e2, 6.1e1,
+              2.1e1, 9.8]) * nu.eV))
+
+
+def vmin_migdal(w, erec, mw):
+    """Return minimum WIMP velocity to make a Migdal signal with energy w,
+    given elastic recoil energy erec and WIMP mass mw.
+    """
+    return (mn * erec / (2 * mu_nucleus(mw)**2))**0.5 + w/(2 * mn * erec)**0.5
+
+
+def rate_migdal(w, mw, sigma_nucleon, interaction='SI', progress_bar=False, **kwargs):
+    """Differential rate per unit detector mass and recoil energy of Migdal effect WIMP-nucleus scattering 
+    
+    :param w: ER energy deposited through Migdal effect
+    :param mw: Mass of WIMP
+    :param sigma_nucleon: WIMP/nucleon cross-section
+    :param interaction: string describing DM-nucleus interaction. See sigma_erec for options
+    :param progress_bar: if True, show a progress bar during evaluation (if w is an array)
+    
+    Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance). 
+    """
+    if isinstance(w, (list, np.ndarray)) and len(w):
+        return np.array([
+            rate_migdal(w=e, mw=mw, sigma_nucleon=sigma_nucleon,
+                        interaction=interaction, progress_bar=progress_bar, **kwargs)
+            for e in (tqdm if progress_bar else lambda x: x)(w)
+        ])
+    
+    # Maximum recoil energy for a nucleus
+    e_max = 2 * mu_nucleus(mw)**2 * v_max**2 / mn                        
+
+    result = 0
+    for state, binding_e in binding_es_for_migdal.items():
+        # Only consider n=3 and n=4, as in slide 8 of LUX talk
+        # (probably good reason, but paper is too large too read)
+        if state[0] not in ['3', '4']:
+            continue
+        
+        # Observed energy = energy of emitted electron + binding energy of state
+        eelec = w - binding_e
+        if eelec < 0:
+            continue
+            
+        # Look up differential probability
+        p = interpolate.interp1d(df_migdal['E'].values * nu.eV, 
+                                 df_migdal[state].values,
+                                 bounds_error=False, 
+                                 fill_value=0)(eelec) / nu.eV
+        
+        def diff_rate(v, erec):
+            return (
+                # Usual elastic differential rate: common constants follow at end
+                sigma_erec(erec, v, mw, sigma_nucleon, interaction)
+                * v * observed_speed_dist(v)
+                # Migdal effect |Z|^2
+                * (nu.me * (2 * erec / mn)**0.5 / (nu.eV/nu.c0))**2 / (2 * np.pi)
+                * p
+            )
+                
+        r = integrate.dblquad(
+            diff_rate, 
+            0, e_max,
+            lambda erec: vmin_migdal(w, erec, mw), lambda _: v_max,
+            **kwargs)[0]
+        
+        result += r
+        
+    return rho_dm / mw * (1 / mn) * result
+
+
+
+##
+# Summary functions
+##
 
 def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elastic_nr', progress_bar=False, **kwargs):
     """Differential rate per unit time, unit detector mass and unit recoil energy of WIMP-nucleus scattering
@@ -352,13 +445,18 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elas
             'SD_n_xxx' for spin-dependent scattering
                 n can be 'n' or 'p' for neutron or proton coupling (at first order)
                 x can be 'central', 'up' or 'down' for theoretical uncertainty on structure function
-    :param detection_mechanism: Detection mechanism, can be 'elastic_nr' or 'bremsstrahlung'
+    :param detection_mechanism: Detection mechanism, can be
+             'elastic_nr' for regular elastic nuclear recoils
+             'bremsstrahlung' for Bremsstrahlung photons
+             'migdal' for the Migdal effect
     :param progress_bar: if True, show a progress bar during evaluation for multiple energies
     :returns: numpy array of same length as es, differential WIMP-nucleus scattering rates
 
     Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance).
     """
-    dmechs = dict(elastic_nr=rate_elastic, bremsstrahlung=rate_bremsstrahlung)
+    dmechs = dict(elastic_nr=rate_elastic, 
+                  bremsstrahlung=rate_bremsstrahlung,
+                  migdal=rate_migdal)
     if detection_mechanism not in dmechs:
         raise NotImplementedError("Unsupported detection mechanism '%s'" % detection_mechanism)
     return dmechs[detection_mechanism](es, mw=mw, sigma_nucleon=sigma_nucleon, interaction=interaction,
