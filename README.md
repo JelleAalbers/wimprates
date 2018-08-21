@@ -16,7 +16,7 @@ Installation and usage
 Features
 --------
   - Spin-indendent and spin-dependent DM-nucleus scattering
-  - Bremsstrahlung and elastic NR detection modes
+  - Elastic NR, bremsstrahlung, and Migdal effect detection mechanisms
 
 Limitations
 -----------
