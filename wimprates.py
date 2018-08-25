@@ -464,7 +464,7 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elas
 
 
 def rate_wimp_std(es, mw, sigma_nucleon, **kwargs):
-    """Differential rate per (ton day keV) of WIMP-nucleus scattering.
+    """Differential rate per (ton year keV) of WIMP-nucleus scattering.
     :param es: Recoil energies in keV
     :param mw: WIMP mass in GeV/c^2
     :param sigma_nucleon: WIMP-nucleon cross-section in cm^2
