@@ -472,4 +472,4 @@ def rate_wimp_std(es, mw, sigma_nucleon, **kwargs):
     
     Further arguments are as for rate_wimp; see docstring of rate_wimp.
     """
-    return rate_wimp(es * nu.keV, mw * nu.GeV/nu.c0**2, sigma_nucleon * nu.cm**2) * (nu.keV * (1000 * nu.kg) * nu.year)
+    return rate_wimp(es * nu.keV, mw * nu.GeV/nu.c0**2, sigma_nucleon * nu.cm**2, **kwargs) * (nu.keV * (1000 * nu.kg) * nu.year)
