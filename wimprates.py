@@ -93,11 +93,13 @@ for _k, _v in s_data.items():       # Don't use k, v; we use v later for velocit
 An = 131.293  
 mn = An * nu.amu    # Mass of nucleus (not nucleon!)
 
+
 def mu_nucleon(mw):
     """Wimp-nucleon reduced mass.
     :param mw: Wimp mass
     """
     return mw * nu.amu / (mw + nu.amu)
+
 
 def mu_proton(mw):
     """Wimp-proton reduced mass.
@@ -105,11 +107,13 @@ def mu_proton(mw):
     """
     return mw * nu.mp / (mw + nu.mp)
 
+
 def mu_neutron(mw):
     """Wimp-neutron reduced mass.
     :param mw: Wimp mass
     """
     return mw * nu.mn / (mw + nu.mn)
+
 
 def mu_nucleus(mw, mn=mn):
     """Wimp-nucleus reduced mass
@@ -118,6 +122,7 @@ def mu_nucleus(mw, mn=mn):
     """
     return mw * mn / (mw + mn)
 
+
 def e_max(mw, v, mn=mn):
     """Kinematic nuclear recoil energy maximum
     :param mw: Wimp mass
@@ -125,9 +130,11 @@ def e_max(mw, v, mn=mn):
     """
     return 2 * mu_nucleus(mw, mn=mn)**2 * v**2 / mn
 
+
 def spherical_bessel_j1(x):
     """Spherical Bessel function j1 according to Wolfram Alpha"""
     return np.sin(x)/x**2 + - np.cos(x)/x
+
 
 @np.vectorize
 def helm_form_factor_squared(erec, anucl=An):
@@ -163,6 +170,7 @@ def helm_form_factor_squared(erec, anucl=An):
     qs_over_hbarc = q*s/hbarc_kevfm
     retval *= np.exp(-qs_over_hbarc*qs_over_hbarc)
     return retval
+
 
 def sigma_erec(erec, v, mw, sigma_nucleon, interaction='SI'):
     """Differential elastic WIMP-nucleus cross section (dependent on recoil energy and wimp-earth speed v)
