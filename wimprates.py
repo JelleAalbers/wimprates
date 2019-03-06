@@ -28,7 +28,7 @@ v_0 = 220 * nu.km/nu.s
 # Velocity of earth/sun relative to gal. center (eccentric orbit, so not equal to v_0)
 v_earth = 232 * nu.km/nu.s
 
-# Mean orbital velocity of the earth (Lewin & Smith appendix B)
+# Mean orbital velocity of the Earth (Lewin & Smith appendix B)
 v_orbit = 29.79 * nu.km / nu.s
 
 # Galactic escape velocity
@@ -39,7 +39,7 @@ v_max = v_esc + v_earth
 
 # J2000.0 epoch conversion (converts datetime to fraction of year)
 # Zero of this convention is defined as 12h Terrestrial time on 1 January 2000
-# This is similar to UT or GMT with negligible error.
+# This is similar to UTC or GMT with negligible error (~1 minute).
 # See http://arxiv.org/abs/1312.1355 Appendix A for more details
 # Test case for 6pm GMT 31st January 2009
 #  j2000(2009, 1, 31.75) = 3318.25
@@ -69,22 +69,57 @@ def j2000(year=None, month=None, day_of_month=None, date=None):
            day_of_month - 730563.5
 
 
-def observed_speed_dist(v):
-    """Observed distribution of dark matter particle speeds on earth under the SHM
-    See my thesis for derivation ;-)
-    If you find a paper where this formula is written out explicitly, please let me know.
-    I spend a lot of time looking for this in vain.
+def _v_earth_t(t):
+    """Calculate the earth orbital velocity at J2000.0 time t.
+       Values and formula from https://arxiv.org/abs/1209.3339
+       Assumes earth circular orbit.
+       Returns velocity of earth wrt sun in galactic coordinates.
     """
+    # e_1 and e_2 are the directions of earth's velocity at t1
+    # and t1 + 0.25 year.
+    e_1 = np.array([0.9931, 0.1170, -0.01032])
+    e_2 = np.array([-0.0670, 0.4927, -0.8676])
+    # t1 is the time of the vernal equinox, March 21. Does it matter what
+    # year? Precession of equinox takes 25800 years so small effect.
+    t1 = j2000(2000, 3, 21)
+    # Angular frequency
+    omega = 2 * np.pi / 365.25
+    phi = omega * (t - t1)
+
+    return v_orbit * (e_1 * np.cos(phi) + e_2 * np.sin(phi))
+
+
+def observed_speed_dist(v, t=None):
+    """Observed distribution of dark matter particle speeds on earth under
+       the SHM
+       See my thesis for derivation ;-)
+       If you find a paper where this formula is written out explicitly, please
+       let me know. I spend a lot of time looking for this in vain.
+
+       Optionally supply J2000.0 time t to take into account Earth's orbital
+       velocity.
+       Values of Sun peculiar velocity from https://arxiv.org/abs/1209.3339
+    """
+    if t is None:
+        v_earth_t = v_earth
+    else:
+        v_LSR = np.array([0, v_earth, 0])
+        v_pec = np.array([11, 12, 7]) * nu.km/nu.s
+        vec = v_LSR + v_pec + _v_earth_t(t)
+
+        v_earth_t = np.sum(vec**2)**0.5
+
+
     # Normalization constant, see Lewin&Smith appendix 1a
     _w = v_esc/v_0
     k = erf(_w) - 2/np.pi**0.5 * _w * np.exp(-_w**2)
 
     # Maximum cos(angle) for this velocity, otherwise v0
-    xmax = np.minimum(1, (v_esc**2 - v_earth**2 - v**2)/(2 * v_earth * v))
+    xmax = np.minimum(1, (v_esc**2 - v_earth_t**2 - v**2)/(2 * v_earth_t * v))
 
-    y =  (k * v / (np.pi**0.5 * v_0 * v_earth) *
-             (np.exp(-((v-v_earth)/v_0)**2) -
-              np.exp(-1/v_0**2 * (v**2 + v_earth**2 + 2 * v * v_earth * xmax))))
+    y = (k * v / (np.pi**0.5 * v_0 * v_earth_t) *
+        (np.exp(-((v-v_earth_t)/v_0)**2) -
+        np.exp(-1/v_0**2 * (v**2 + v_earth_t**2 + 2 * v * v_earth_t * xmax))))
 
     # Zero if v > v_max
     try:
