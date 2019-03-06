@@ -89,7 +89,7 @@ def _v_earth_t(t):
     return v_orbit * (e_1 * np.cos(phi) + e_2 * np.sin(phi))
 
 
-def vmax_t(t=None):
+def v_max_t(t=None):
     """Calculate the maximum observable dark matter velocity on Earth."""
     if t is None:
         return v_esc + v_earth
@@ -300,7 +300,8 @@ def vmin_elastic(erec, mw):
     """
     return np.sqrt(mn * erec / (2 * mu_nucleus(mw)**2))
 
-def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), progress_bar=False, **kwargs):
+def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
+                 t=None, progress_bar=False, **kwargs):
     """Differential rate per unit detector mass and recoil energy of elastic WIMP scattering
 
     :param erec: recoil energy
@@ -308,6 +309,7 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), 
     :param sigma_nucleon: WIMP/nucleon cross-section
     :param interaction: string describing DM-nucleus interaction, see sigma_erec for options
     :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param t: A J2000.0 timestamp. If not given, conservative velocity distribution is used.
     :param progress_bar: if True, show a progress bar during evaluation (if erec is an array)
 
     Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance).
@@ -318,18 +320,18 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), 
     if isinstance(erec, (list, np.ndarray)) and len(erec):
         return np.array([rate_elastic(erec=e, mw=mw, sigma_nucleon=sigma_nucleon,
                                       interaction=interaction, m_med=m_med,
-                                      progress_bar=progress_bar, **kwargs)
+                                      t=t, progress_bar=progress_bar, **kwargs)
                         for e in (tqdm if progress_bar else lambda x: x)(erec)
                         ])
 
     v_min = vmin_elastic(erec, mw)
 
-    if v_min >= v_max:
+    if v_min >= v_max_t(t):
         return 0
 
     return rho_dm / mw * (1 / mn) * integrate.quad(
-        lambda v: sigma_erec(erec, v, mw, sigma_nucleon, interaction, m_med) * v * observed_speed_dist(v),
-        v_min, v_max, **kwargs
+        lambda v: sigma_erec(erec, v, mw, sigma_nucleon, interaction, m_med) * v * observed_speed_dist(v, t),
+        v_min, v_max_t(t), **kwargs
     )[0]
 
 
@@ -410,13 +412,16 @@ def sigma_w(w, v, mw, sigma_nucleon, interaction='SI', m_med=float('inf')):
                          )[0]
 
 
-def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), progress_bar=False, **kwargs):
+def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI',
+                        m_med=float('inf'), t=None, progress_bar=False,
+                        **kwargs):
     """Differential rate per unit detector mass and recoil energy of Bremsstrahlung elastic WIMP-nucleus scattering
 
     :param w: Bremsstrahlung photon energy
     :param mw: Mass of WIMP
     :param sigma_nucleon: WIMP/nucleon cross-section
     :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param t: A J2000.0 timestamp. If not given, conservative velocity distribution is used.
     :param interaction: string describing DM-nucleus interaction. See sigma_erec for options
     :param progress_bar: if True, show a progress bar during evaluation (if w is an array)
 
@@ -425,18 +430,18 @@ def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf
     if isinstance(w, (list, np.ndarray)) and len(w):
         return np.array([
             rate_bremsstrahlung(w=e, mw=mw, sigma_nucleon=sigma_nucleon,
-                                interaction=interaction, m_med=m_med,
+                                interaction=interaction, m_med=m_med, t=t,
                                 progress_bar=progress_bar, **kwargs)
             for e in (tqdm if progress_bar else lambda x: x)(w)
         ])
 
-    if vmin_w(w, mw) >= v_max:
+    if vmin_w(w, mw) >= v_max_t(t):
         return 0
 
     return rho_dm / mw * (1 / mn) * integrate.quad(
         lambda v: sigma_w(w, v, mw, sigma_nucleon, interaction, m_med) *
-                    v * observed_speed_dist(v),
-                    vmin_w(w, mw), v_max, **kwargs
+                    v * observed_speed_dist(v, t),
+                    vmin_w(w, mw), v_max_t(t), **kwargs
     )[0]
 
 
@@ -469,7 +474,8 @@ def vmin_migdal(w, erec, mw):
     return np.maximum(0, (mn * erec / (2 * mu_nucleus(mw)**2))**0.5 + w/(2 * mn * erec)**0.5)
 
 
-def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), progress_bar=False, **kwargs):
+def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
+                t=None, progress_bar=False, **kwargs):
     """Differential rate per unit detector mass and recoil energy of Migdal effect WIMP-nucleus scattering
 
     :param w: ER energy deposited through Migdal effect
@@ -477,6 +483,7 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
     :param sigma_nucleon: WIMP/nucleon cross-section
     :param interaction: string describing DM-nucleus interaction. See sigma_erec for options
     :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param t: A J2000.0 timestamp. If not given, conservative velocity distribution is used.
     :param progress_bar: if True, show a progress bar during evaluation (if w is an array)
 
     Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance).
@@ -484,13 +491,13 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
     if isinstance(w, (list, np.ndarray)) and len(w):
         return np.array([
             rate_migdal(w=e, mw=mw, sigma_nucleon=sigma_nucleon,
-                        interaction=interaction, m_med=m_med,
+                        interaction=interaction, m_med=m_med, t=t,
                         progress_bar=progress_bar, **kwargs)
             for e in (tqdm if progress_bar else lambda x: x)(w)
         ])
 
     # Maximum recoil energy for a nucleus
-    e_max = 2 * mu_nucleus(mw)**2 * v_max**2 / mn
+    e_max = 2 * mu_nucleus(mw)**2 * v_max_t(t)**2 / mn
 
     result = 0
     for state, binding_e in binding_es_for_migdal.items():
@@ -510,12 +517,12 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
                                  bounds_error=False,
                                  fill_value=0)(eelec) / nu.eV
 
-        def diff_rate(v, erec):
+        def diff_rate(v, erec, t=None):
             return (
                 # Usual elastic differential rate: common constants follow at end
                 sigma_erec(erec, v, mw, sigma_nucleon, interaction)
                 * mediator_factor(erec, m_med)
-                * v * observed_speed_dist(v)
+                * v * observed_speed_dist(v, t)
                 # Migdal effect |Z|^2
                 * (nu.me * (2 * erec / mn)**0.5 / (nu.eV/nu.c0))**2 / (2 * np.pi)
                 * p
@@ -525,7 +532,9 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
         r = integrate.dblquad(
             diff_rate,
             0, e_max,
-            lambda erec: vmin_migdal(w, erec, mw), lambda _: v_max,
+            lambda erec: vmin_migdal(w, erec, mw),
+            lambda _: v_max_t(t),
+            args=(t),
             **kwargs)[0]
 
         result += r
@@ -538,7 +547,8 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
 # Summary functions
 ##
 
-def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elastic_nr', m_med=float('inf'),
+def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
+              detection_mechanism='elastic_nr', m_med=float('inf'), t=None,
               progress_bar=False, **kwargs):
     """Differential rate per unit time, unit detector mass and unit recoil energy of WIMP-nucleus scattering
     Use numericalunits to get variables in/out in the right units.
@@ -556,6 +566,7 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elas
              'bremsstrahlung' for Bremsstrahlung photons
              'migdal' for the Migdal effect
     :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param t: A J2000.0 timestamp. If not given, conservative velocity distribution is used.
     :param progress_bar: if True, show a progress bar during evaluation for multiple energies
     :returns: numpy array of same length as es, differential WIMP-nucleus scattering rates
 
@@ -567,15 +578,16 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elas
     if detection_mechanism not in dmechs:
         raise NotImplementedError("Unsupported detection mechanism '%s'" % detection_mechanism)
     return dmechs[detection_mechanism](es, mw=mw, sigma_nucleon=sigma_nucleon, interaction=interaction,
-                                       m_med=m_med, progress_bar=progress_bar, **kwargs)
+                                       m_med=m_med, t=t, progress_bar=progress_bar, **kwargs)
 
 
-def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'), **kwargs):
+def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'), t=None, **kwargs):
     """Differential rate per (ton year keV) of WIMP-nucleus scattering.
     :param es: Recoil energies in keV
     :param mw: WIMP mass in GeV/c^2
     :param sigma_nucleon: WIMP-nucleon cross-section in cm^2
     :param m_med: Medator mass in GeV/c^2. If not given, assumed very heavy.
+    :param t: A J2000.0 timestamp. If not given, conservative velocity distribution is used.
     :returns: numpy array of same length as es
 
     Further arguments are as for rate_wimp; see docstring of rate_wimp.
@@ -583,4 +595,4 @@ def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'), **kwargs):
     return rate_wimp(es=es * nu.keV,
                      mw=mw * nu.GeV/nu.c0**2,
                      sigma_nucleon=sigma_nucleon * nu.cm**2,
-                     m_med=m_med * nu.GeV/nu.c0**2, **kwargs) * (nu.keV * (1000 * nu.kg) * nu.year)
+                     m_med=m_med * nu.GeV/nu.c0**2, t=t, **kwargs) * (nu.keV * (1000 * nu.kg) * nu.year)
