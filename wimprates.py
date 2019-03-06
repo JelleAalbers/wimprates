@@ -37,7 +37,7 @@ v_esc = 544 * nu.km/nu.s
 # Maximum dark matter velocity observable on earth
 v_max = v_esc + v_earth
 
-# J2000.0 epoch conversion (converts datetime to fraction of year)
+# J2000.0 epoch conversion (converts datetime to days since epoch)
 # Zero of this convention is defined as 12h Terrestrial time on 1 January 2000
 # This is similar to UTC or GMT with negligible error (~1 minute).
 # See http://arxiv.org/abs/1312.1355 Appendix A for more details
@@ -89,6 +89,14 @@ def _v_earth_t(t):
     return v_orbit * (e_1 * np.cos(phi) + e_2 * np.sin(phi))
 
 
+def vmax_t(t=None):
+    """Calculate the maximum observable dark matter velocity on Earth."""
+    if t is None:
+        return v_esc + v_earth
+    else:
+        return v_esc + _v_earth_t(t)
+
+
 def observed_speed_dist(v, t=None):
     """Observed distribution of dark matter particle speeds on earth under
        the SHM
@@ -103,8 +111,8 @@ def observed_speed_dist(v, t=None):
     if t is None:
         v_earth_t = v_earth
     else:
-        v_LSR = np.array([0, v_earth, 0])
-        v_pec = np.array([11, 12, 7]) * nu.km/nu.s
+        v_LSR = np.array([0, v_earth, 0])  # Velocity in Local Standard of REST
+        v_pec = np.array([11, 12, 7]) * nu.km/nu.s  # Solar peculiar velocity
         vec = v_LSR + v_pec + _v_earth_t(t)
 
         v_earth_t = np.sum(vec**2)**0.5
@@ -126,13 +134,13 @@ def observed_speed_dist(v, t=None):
         len(v)
     except TypeError:
         # Scalar argument
-        if v > v_max:
+        if v > v_max_t(t):
             return 0
         else:
             return y
 
     # Array argument
-    y[v > v_max] = 0
+    y[v > v_max_t(t)] = 0
     return y
 
 
