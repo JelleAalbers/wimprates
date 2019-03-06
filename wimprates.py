@@ -13,31 +13,66 @@ import inspect
 THIS_DIR = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 def data_file(path):
     """Convert path in wimprates' data directory to absolute path"""
-    return os.path.join(THIS_DIR, 'data', path) 
+    return os.path.join(THIS_DIR, 'data', path)
 
 ##
 # Halo model
 ##
 
 # Local dark matter density
-rho_dm = 0.3 * nu.GeV/nu.c0**2 /nu.cm**3 
+rho_dm = 0.3 * nu.GeV/nu.c0**2 /nu.cm**3
 
 # Most common velocity of WIMPs in the halo, relative to galactic center (asymptotic)
-v_0 = 220 * nu.km/nu.s       
+v_0 = 220 * nu.km/nu.s
 
 # Velocity of earth/sun relative to gal. center (eccentric orbit, so not equal to v_0)
-v_earth = 232 * nu.km/nu.s   
+v_earth = 232 * nu.km/nu.s
+
+# Mean orbital velocity of the earth (Lewin & Smith appendix B)
+v_orbit = 29.79 * nu.km / nu.s
 
 # Galactic escape velocity
-v_esc = 544 * nu.km/nu.s     
+v_esc = 544 * nu.km/nu.s
 
 # Maximum dark matter velocity observable on earth
 v_max = v_esc + v_earth
 
+# J2000.0 epoch conversion (converts datetime to fraction of year)
+# Zero of this convention is defined as 12h Terrestrial time on 1 January 2000
+# This is similar to UT or GMT with negligible error.
+# See http://arxiv.org/abs/1312.1355 Appendix A for more details
+# Test case for 6pm GMT 31st January 2009
+#  j2000(2009, 1, 31.75) = 3318.25
+#  j2000(date=pd.to_datetime('2009-1-31 18:00:00') = 3318.25
+def j2000(year=None, month=None, day_of_month=None, date=None):
+    """Convert calendar date in year, month (starting at 1) and
+    the (possibly fractional) day of the month relative to midnight UT.
+    Either pass year, month and day_of_month or pass pandas datetime object
+    via date argument.
+    Returns the fractional number of days since J2000.0 epoch.
+    """
+    if date is not None:
+        year = date.year
+        month = date.month
+
+        start_of_month = pd.datetime(year, month, 1)
+        day_of_month = (date - start_of_month) / pd.Timedelta(1, 'D') + 1
+
+    assert month > 0
+    assert month < 13
+
+    Y = year if month > 2 else year - 1
+    M = month if month > 2 else month + 12
+
+    return np.floor(365.25 * Y) + \
+           np.floor(30.61 * (M + 1)) + \
+           day_of_month - 730563.5
+
+
 def observed_speed_dist(v):
     """Observed distribution of dark matter particle speeds on earth under the SHM
     See my thesis for derivation ;-)
-    If you find a paper where this formula is written out explicitly, please let me know. 
+    If you find a paper where this formula is written out explicitly, please let me know.
     I spend a lot of time looking for this in vain.
     """
     # Normalization constant, see Lewin&Smith appendix 1a
@@ -46,11 +81,11 @@ def observed_speed_dist(v):
 
     # Maximum cos(angle) for this velocity, otherwise v0
     xmax = np.minimum(1, (v_esc**2 - v_earth**2 - v**2)/(2 * v_earth * v))
-    
+
     y =  (k * v / (np.pi**0.5 * v_0 * v_earth) *
-             (np.exp(-((v-v_earth)/v_0)**2) - 
+             (np.exp(-((v-v_earth)/v_0)**2) -
               np.exp(-1/v_0**2 * (v**2 + v_earth**2 + 2 * v * v_earth * xmax))))
-    
+
     # Zero if v > v_max
     try:
         len(v)
@@ -60,7 +95,7 @@ def observed_speed_dist(v):
             return 0
         else:
             return y
-        
+
     # Array argument
     y[v > v_max] = 0
     return y
@@ -74,7 +109,7 @@ spin_isotopes = [
     # A, mass, J (nuclear spin), abundance
     # Data from Wikipedia (Jelle, 12 January 2018)
     (129, 128.9047794 * nu.amu, 1/2, 26.401e-2),
-    (131, 130.9050824 * nu.amu, 3/2, 21.232e-2),   
+    (131, 130.9050824 * nu.amu, 3/2, 21.232e-2),
 ]
 
 # Load spin-dependent structure functions
@@ -87,10 +122,10 @@ for _k, _v in s_data.items():       # Don't use k, v; we use v later for velocit
         continue
     structure_functions[_k] = interpolate.interp1d(s_energies, _v,
                                                    bounds_error=False, fill_value=0)
-      
+
 # Standard atomic weight of target (averaged across all isotopes)
 # Used for spin-indepdendent scattering
-An = 131.293  
+An = 131.293
 mn = An * nu.amu    # Mass of nucleus (not nucleon!)
 
 
@@ -139,9 +174,9 @@ def spherical_bessel_j1(x):
 @np.vectorize
 def helm_form_factor_squared(erec, anucl=An):
     """Return Helm form factor squared from Lewin & Smith
-    
+
     Lifted from Andrew Brown's code with minor edits
-    
+
     :param erec: nuclear recoil energy
     """
     en = erec / nu.keV
@@ -149,7 +184,7 @@ def helm_form_factor_squared(erec, anucl=An):
         raise ValueError("Invalid value of A!")
 
     # TODO: Rewrite this so it doesn't use its internal unit system and hardcoded constants...
-    
+
     # First we get rn squared, in fm
     mnucl = nu.amu/(nu.GeV/nu.c0**2)    # Mass of a nucleon, in GeV/c^2
     pi = np.pi
@@ -174,7 +209,7 @@ def helm_form_factor_squared(erec, anucl=An):
 
 def sigma_erec(erec, v, mw, sigma_nucleon, interaction='SI', m_med=float('inf')):
     """Differential elastic WIMP-nucleus cross section (dependent on recoil energy and wimp-earth speed v)
-    
+
     :param erec: recoil energy
     :param v: WIMP speed (earth/detector frame)
     :param mw: Mass of WIMP
@@ -189,7 +224,7 @@ def sigma_erec(erec, v, mw, sigma_nucleon, interaction='SI', m_med=float('inf'))
 
     elif interaction.startswith('SD'):
         _, coupling, s_assumption = interaction.split('_')
-            
+
         result = np.zeros_like(erec)
         for A, mn_isotope, J, abundance in spin_isotopes:
             s = structure_functions[(A, coupling, s_assumption)]
@@ -197,10 +232,10 @@ def sigma_erec(erec, v, mw, sigma_nucleon, interaction='SI', m_med=float('inf'))
             # Obviously there's no point to this, so let's not.
             x = sigma_nucleon * 4 * np.pi * mu_nucleus(mw, mn=mn_isotope)**2 / (3 * mu_proton(mw)**2 * (2 * J + 1))
             result += abundance * x / e_max(mw, v, mn=mn_isotope) * s(erec)
-            
+
     else:
         raise ValueError("Unsupported DM-nucleus interaction '%s'" % interaction)
-        
+
     return result * mediator_factor(erec, m_med)
 
 
@@ -208,7 +243,7 @@ def mediator_factor(erec, m_med):
     if m_med == float('inf'):
         return 1
     q = (2 * mn * erec)**0.5
-    return m_med**4 / (m_med**2 + (q/nu.c0)**2)**2    
+    return m_med**4 / (m_med**2 + (q/nu.c0)**2)**2
 
 
 ##
@@ -223,8 +258,8 @@ def vmin_elastic(erec, mw):
     return np.sqrt(mn * erec / (2 * mu_nucleus(mw)**2))
 
 def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), progress_bar=False, **kwargs):
-    """Differential rate per unit detector mass and recoil energy of elastic WIMP scattering 
-    
+    """Differential rate per unit detector mass and recoil energy of elastic WIMP scattering
+
     :param erec: recoil energy
     :param mw: WIMP mass
     :param sigma_nucleon: WIMP/nucleon cross-section
@@ -232,8 +267,8 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), 
     :param m_med: Mediator mass. If not given, assumed very heavy.
     :param progress_bar: if True, show a progress bar during evaluation (if erec is an array)
 
-    Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance). 
-    
+    Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance).
+
     Analytic expressions are known for this rate, but they are not used here.
     See Andrew's code (or its python translation in laidbax.wimps) if you really need <1% error.
     """
@@ -243,9 +278,9 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), 
                                       progress_bar=progress_bar, **kwargs)
                         for e in (tqdm if progress_bar else lambda x: x)(erec)
                         ])
-    
+
     v_min = vmin_elastic(erec, mw)
-    
+
     if v_min >= v_max:
         return 0
 
@@ -271,7 +306,7 @@ f2 = to_itp('atomic_form_2')
 def sigma_w_erec(w, erec, v, mw, sigma_nucleon, interaction='SI', m_med=float('inf')):
     """Differential WIMP-nucleus Bremsstrahlung cross section.
     From Kouvaris/Pradler [arxiv:1607.01789v2], eq. 8
-    
+
     :param w: Bremsstrahlung photon energy
     :param mw: WIMP mass
     :param erec: recoil energy
@@ -279,25 +314,25 @@ def sigma_w_erec(w, erec, v, mw, sigma_nucleon, interaction='SI', m_med=float('i
     :param sigma_nucleon: WIMP/nucleon cross-section
     :param interaction: string describing DM-nucleus interaction. Default is 'SI' (spin-independent)
     :param m_med: Mediator mass. If not given, assumed very heavy.
-    
+
     TODO: check for wmax!    # What is this? Still relevant?
     """
     # X-ray form factor
     form_atomic = np.abs(f1(w / nu.keV) + 1j * f2(w / nu.keV))
-    
+
     # Note mn -> mn c^2, Kouvaris/Pradtler and McCabe apparently use natural units...
-    return (4 * nu.alphaFS / (3 * np.pi * w) * 
-            erec / (mn * nu.c0**2) * 
-            form_atomic**2 * 
+    return (4 * nu.alphaFS / (3 * np.pi * w) *
+            erec / (mn * nu.c0**2) *
+            form_atomic**2 *
             sigma_erec(erec, v, mw, sigma_nucleon, interaction, m_med))
 
 
 def vmin_w(w, mw):
     """Minimum wimp velocity to emit a Bremsstrahlung photon w
-    
+
     :param w: Bremsstrahlung photon energy
     :param mw: WIMP mass
-    
+
     From Kouvaris/Pradler [arxiv:1607.01789v2], equation in text below eq. 10
     """
     return (2 * w / mu_nucleus(mw))**0.5
@@ -306,7 +341,7 @@ def vmin_w(w, mw):
 def erec_bound(sign, w, v, mw):
     """Bremsstrahlung scattering recoil energy kinematic limits
     From Kouvaris/Pradler [arxiv:1607.01789v2], eq. between 8 and 9, simplified by vmin (see above)
-    
+
     :param sign: +1 to get upper limit, -1 to get lower limit
     :param w: Bremsstrahlung photon energy
     :param mw: WIMP mass
@@ -318,7 +353,7 @@ def erec_bound(sign, w, v, mw):
 
 def sigma_w(w, v, mw, sigma_nucleon, interaction='SI', m_med=float('inf')):
     """Differential Bremsstrahlung WIMP-nucleus cross section
-    
+
     :param w: Bremsstrahlung photon energy
     :param v: WIMP speed (earth/detector frame)
     :param mw: Mass of WIMP
@@ -326,23 +361,23 @@ def sigma_w(w, v, mw, sigma_nucleon, interaction='SI', m_med=float('inf')):
     :param interaction: string describing DM-nucleus interaction. Default is 'SI' (spin-independent)
     :param m_med: Mediator mass. If not given, assumed very heavy.
     """
-    return integrate.quad(lambda erec: sigma_w_erec(w, erec, v, mw, sigma_nucleon, interaction, m_med), 
-                          erec_bound(-1, w, v, mw), 
+    return integrate.quad(lambda erec: sigma_w_erec(w, erec, v, mw, sigma_nucleon, interaction, m_med),
+                          erec_bound(-1, w, v, mw),
                           erec_bound(+1, w, v, mw),
                          )[0]
 
 
 def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), progress_bar=False, **kwargs):
-    """Differential rate per unit detector mass and recoil energy of Bremsstrahlung elastic WIMP-nucleus scattering 
-    
+    """Differential rate per unit detector mass and recoil energy of Bremsstrahlung elastic WIMP-nucleus scattering
+
     :param w: Bremsstrahlung photon energy
     :param mw: Mass of WIMP
     :param sigma_nucleon: WIMP/nucleon cross-section
     :param m_med: Mediator mass. If not given, assumed very heavy.
     :param interaction: string describing DM-nucleus interaction. See sigma_erec for options
     :param progress_bar: if True, show a progress bar during evaluation (if w is an array)
-    
-    Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance). 
+
+    Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance).
     """
     if isinstance(w, (list, np.ndarray)) and len(w):
         return np.array([
@@ -356,7 +391,7 @@ def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf
         return 0
 
     return rho_dm / mw * (1 / mn) * integrate.quad(
-        lambda v: sigma_w(w, v, mw, sigma_nucleon, interaction, m_med) * 
+        lambda v: sigma_w(w, v, mw, sigma_nucleon, interaction, m_med) *
                     v * observed_speed_dist(v),
                     vmin_w(w, mw), v_max, **kwargs
     )[0]
@@ -376,9 +411,9 @@ migdal_states.remove('E')
 # Binding energies of the relevant Xenon electronic states
 # From table II of 1707.07258
 binding_es_for_migdal = dict(zip(
-    migdal_states, 
-    np.array([3.5e4, 
-              5.4e3, 4.9e3, 
+    migdal_states,
+    np.array([3.5e4,
+              5.4e3, 4.9e3,
               1.1e3, 9.3e2, 6.6e2,
               2e2, 1.4e2, 6.1e1,
               2.1e1, 9.8]) * nu.eV))
@@ -392,16 +427,16 @@ def vmin_migdal(w, erec, mw):
 
 
 def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), progress_bar=False, **kwargs):
-    """Differential rate per unit detector mass and recoil energy of Migdal effect WIMP-nucleus scattering 
-    
+    """Differential rate per unit detector mass and recoil energy of Migdal effect WIMP-nucleus scattering
+
     :param w: ER energy deposited through Migdal effect
     :param mw: Mass of WIMP
     :param sigma_nucleon: WIMP/nucleon cross-section
     :param interaction: string describing DM-nucleus interaction. See sigma_erec for options
     :param m_med: Mediator mass. If not given, assumed very heavy.
     :param progress_bar: if True, show a progress bar during evaluation (if w is an array)
-    
-    Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance). 
+
+    Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance).
     """
     if isinstance(w, (list, np.ndarray)) and len(w):
         return np.array([
@@ -410,9 +445,9 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
                         progress_bar=progress_bar, **kwargs)
             for e in (tqdm if progress_bar else lambda x: x)(w)
         ])
-    
+
     # Maximum recoil energy for a nucleus
-    e_max = 2 * mu_nucleus(mw)**2 * v_max**2 / mn                        
+    e_max = 2 * mu_nucleus(mw)**2 * v_max**2 / mn
 
     result = 0
     for state, binding_e in binding_es_for_migdal.items():
@@ -420,18 +455,18 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
         # (n=5 is the valence band in liquid so unreliable, n=1,2 contribute very little)
         if state[0] not in ['3', '4']:
             continue
-        
+
         # Observed energy = energy of emitted electron + binding energy of state
         eelec = w - binding_e
         if eelec < 0:
             continue
-            
+
         # Look up differential probability
-        p = interpolate.interp1d(df_migdal['E'].values * nu.eV, 
+        p = interpolate.interp1d(df_migdal['E'].values * nu.eV,
                                  df_migdal[state].values,
-                                 bounds_error=False, 
+                                 bounds_error=False,
                                  fill_value=0)(eelec) / nu.eV
-        
+
         def diff_rate(v, erec):
             return (
                 # Usual elastic differential rate: common constants follow at end
@@ -442,16 +477,16 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
                 * (nu.me * (2 * erec / mn)**0.5 / (nu.eV/nu.c0))**2 / (2 * np.pi)
                 * p
             )
-        
+
         # Note dblquad expects the function to be f(y, x), not f(x, y)...
         r = integrate.dblquad(
-            diff_rate, 
+            diff_rate,
             0, e_max,
             lambda erec: vmin_migdal(w, erec, mw), lambda _: v_max,
             **kwargs)[0]
-        
+
         result += r
-        
+
     return rho_dm / mw * (1 / mn) * result
 
 
@@ -460,7 +495,7 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
 # Summary functions
 ##
 
-def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elastic_nr', m_med=float('inf'), 
+def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elastic_nr', m_med=float('inf'),
               progress_bar=False, **kwargs):
     """Differential rate per unit time, unit detector mass and unit recoil energy of WIMP-nucleus scattering
     Use numericalunits to get variables in/out in the right units.
@@ -483,7 +518,7 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elas
 
     Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance).
     """
-    dmechs = dict(elastic_nr=rate_elastic, 
+    dmechs = dict(elastic_nr=rate_elastic,
                   bremsstrahlung=rate_bremsstrahlung,
                   migdal=rate_migdal)
     if detection_mechanism not in dmechs:
@@ -499,10 +534,10 @@ def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'), **kwargs):
     :param sigma_nucleon: WIMP-nucleon cross-section in cm^2
     :param m_med: Medator mass in GeV/c^2. If not given, assumed very heavy.
     :returns: numpy array of same length as es
-    
+
     Further arguments are as for rate_wimp; see docstring of rate_wimp.
     """
-    return rate_wimp(es=es * nu.keV, 
-                     mw=mw * nu.GeV/nu.c0**2, 
-                     sigma_nucleon=sigma_nucleon * nu.cm**2, 
+    return rate_wimp(es=es * nu.keV,
+                     mw=mw * nu.GeV/nu.c0**2,
+                     sigma_nucleon=sigma_nucleon * nu.cm**2,
                      m_med=m_med * nu.GeV/nu.c0**2, **kwargs) * (nu.keV * (1000 * nu.kg) * nu.year)
