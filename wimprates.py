@@ -73,7 +73,7 @@ def _v_earth_t(t):
     """Calculate the earth orbital velocity at J2000.0 time t.
        Values and formula from https://arxiv.org/abs/1209.3339
        Assumes earth circular orbit.
-       Returns velocity of earth wrt sun in galactic coordinates.
+       Returns velocity of earth wrt galactic rest in galactic coordinates.
     """
     # e_1 and e_2 are the directions of earth's velocity at t1
     # and t1 + 0.25 year.
@@ -86,7 +86,12 @@ def _v_earth_t(t):
     omega = 2 * np.pi / 365.25
     phi = omega * (t - t1)
 
-    return v_orbit * (e_1 * np.cos(phi) + e_2 * np.sin(phi))
+    v_earth_sun = v_orbit * (e_1 * np.cos(phi) + e_2 * np.sin(phi))
+
+    v_LSR = np.array([0, v_earth, 0])  # Velocity in Local Standard of Rest
+    v_pec = np.array([11, 12, 7]) * nu.km/nu.s  # Solar peculiar velocity
+
+    return v_LSR + v_pec + v_earth_sun
 
 
 def v_max_t(t=None):
@@ -94,7 +99,7 @@ def v_max_t(t=None):
     if t is None:
         return v_esc + v_earth
     else:
-        return v_esc + _v_earth_t(t)
+        return v_esc + np.sum(_v_earth_t(t)**2)**0.5
 
 
 def observed_speed_dist(v, t=None):
@@ -106,16 +111,11 @@ def observed_speed_dist(v, t=None):
 
        Optionally supply J2000.0 time t to take into account Earth's orbital
        velocity.
-       Values of Sun peculiar velocity from https://arxiv.org/abs/1209.3339
     """
     if t is None:
         v_earth_t = v_earth
     else:
-        v_LSR = np.array([0, v_earth, 0])  # Velocity in Local Standard of REST
-        v_pec = np.array([11, 12, 7]) * nu.km/nu.s  # Solar peculiar velocity
-        vec = v_LSR + v_pec + _v_earth_t(t)
-
-        v_earth_t = np.sum(vec**2)**0.5
+        v_earth_t = np.sum(_v_earth_t(t)**2)**0.5
 
 
     # Normalization constant, see Lewin&Smith appendix 1a
