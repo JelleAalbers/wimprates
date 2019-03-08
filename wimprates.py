@@ -85,7 +85,7 @@ def _v_earth_t(t):
 
     v_earth_sun = v_orbit * (e_1 * np.cos(phi) + e_2 * np.sin(phi))
 
-    v_LSR = np.array([0, v_earth, 0])  # Velocity in Local Standard of Rest
+    v_LSR = np.array([0, 220, 0]) * nu.km/nu.s  # Velocity of Local Standard of Rest
     v_pec = np.array([11, 12, 7]) * nu.km/nu.s  # Solar peculiar velocity
 
     return v_LSR + v_pec + v_earth_sun
