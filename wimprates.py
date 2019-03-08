@@ -34,9 +34,6 @@ v_orbit = 29.79 * nu.km / nu.s
 # Galactic escape velocity
 v_esc = 544 * nu.km/nu.s
 
-# Maximum dark matter velocity observable on earth
-v_max = v_esc + v_earth
-
 # J2000.0 epoch conversion (converts datetime to days since epoch)
 # Zero of this convention is defined as 12h Terrestrial time on 1 January 2000
 # This is similar to UTC or GMT with negligible error (~1 minute).
@@ -94,7 +91,7 @@ def _v_earth_t(t):
     return v_LSR + v_pec + v_earth_sun
 
 
-def v_max_t(t=None):
+def v_max(t=None):
     """Calculate the maximum observable dark matter velocity on Earth."""
     if t is None:
         return v_esc + v_earth
@@ -134,13 +131,13 @@ def observed_speed_dist(v, t=None):
         len(v)
     except TypeError:
         # Scalar argument
-        if v > v_max_t(t):
+        if v > v_max(t):
             return 0
         else:
             return y
 
     # Array argument
-    y[v > v_max_t(t)] = 0
+    y[v > v_max(t)] = 0
     return y
 
 
@@ -326,12 +323,12 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
 
     v_min = vmin_elastic(erec, mw)
 
-    if v_min >= v_max_t(t):
+    if v_min >= v_max(t):
         return 0
 
     return rho_dm / mw * (1 / mn) * integrate.quad(
         lambda v: sigma_erec(erec, v, mw, sigma_nucleon, interaction, m_med) * v * observed_speed_dist(v, t),
-        v_min, v_max_t(t), **kwargs
+        v_min, v_max(t), **kwargs
     )[0]
 
 
@@ -435,13 +432,13 @@ def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI',
             for e in (tqdm if progress_bar else lambda x: x)(w)
         ])
 
-    if vmin_w(w, mw) >= v_max_t(t):
+    if vmin_w(w, mw) >= v_max(t):
         return 0
 
     return rho_dm / mw * (1 / mn) * integrate.quad(
         lambda v: sigma_w(w, v, mw, sigma_nucleon, interaction, m_med) *
                     v * observed_speed_dist(v, t),
-                    vmin_w(w, mw), v_max_t(t), **kwargs
+                    vmin_w(w, mw), v_max(t), **kwargs
     )[0]
 
 
@@ -497,7 +494,7 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
         ])
 
     # Maximum recoil energy for a nucleus
-    e_max = 2 * mu_nucleus(mw)**2 * v_max_t(t)**2 / mn
+    e_max = 2 * mu_nucleus(mw)**2 * v_max(t)**2 / mn
 
     result = 0
     for state, binding_e in binding_es_for_migdal.items():
@@ -533,7 +530,7 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
             diff_rate,
             0, e_max,
             lambda erec: vmin_migdal(w, erec, mw),
-            lambda _: v_max_t(t),
+            lambda _: v_max(t),
             args=(t),
             **kwargs)[0]
 
