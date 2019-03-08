@@ -17,6 +17,7 @@ Features
 --------
   - Spin-indendent and spin-dependent DM-nucleus scattering
   - Elastic NR, bremsstrahlung, and Migdal effect detection mechanisms
+  - Time dependent observed dark matter speed distribution (annual modulation only, no daily modulation)
 
 Limitations
 -----------
