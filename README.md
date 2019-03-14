@@ -17,11 +17,11 @@ Features
 --------
   - Spin-indendent and spin-dependent DM-nucleus scattering
   - Elastic NR, bremsstrahlung, and Migdal effect detection mechanisms
+  - Time dependent observed dark matter speed distribution (annual modulation only, no daily modulation)
 
 Limitations
 -----------
  - Numeric integration is used to compute some differential rates, even in cases where exact expressions are known / could be derived.
- - The earth's motion w.r.t. to the sun is not taken into account: no annual modulation for you!
  - Not all functions are properly vectorized yet
 
 The package uses numericalunits (https://pypi.python.org/pypi/numericalunits); all function inputs
