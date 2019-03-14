@@ -180,7 +180,7 @@ def sigma_erec(erec, v, mw, sigma_nucleon, interaction='SI', m_med=float('inf'))
     :param mw: Mass of WIMP
     :param sigma_nucleon: WIMP-nucleon cross-section
     :param interaction: string describing DM-nucleus interaction. See rate_wimps for options.
-    :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param m_med: Mediator mass. If not given, assumed much heavier than mw.
     """
     if interaction == 'SI':
         # Still assumes heavy mediator? McCabe mentions this in his Bremsstrahlung paper
@@ -278,7 +278,7 @@ def sigma_w_erec(w, erec, v, mw, sigma_nucleon, interaction='SI', m_med=float('i
     :param v: WIMP speed (earth/detector frame)
     :param sigma_nucleon: WIMP/nucleon cross-section
     :param interaction: string describing DM-nucleus interaction. Default is 'SI' (spin-independent)
-    :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param m_med: Mediator mass. If not given, assumed much heavier than mw.
     
     TODO: check for wmax!    # What is this? Still relevant?
     """
@@ -324,7 +324,7 @@ def sigma_w(w, v, mw, sigma_nucleon, interaction='SI', m_med=float('inf')):
     :param mw: Mass of WIMP
     :param sigma_nucleon: WIMP-nucleon cross-section
     :param interaction: string describing DM-nucleus interaction. Default is 'SI' (spin-independent)
-    :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param m_med: Mediator mass. If not given, assumed much heavier than mw.
     """
     return integrate.quad(lambda erec: sigma_w_erec(w, erec, v, mw, sigma_nucleon, interaction, m_med), 
                           erec_bound(-1, w, v, mw), 
@@ -338,7 +338,7 @@ def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf
     :param w: Bremsstrahlung photon energy
     :param mw: Mass of WIMP
     :param sigma_nucleon: WIMP/nucleon cross-section
-    :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param m_med: Mediator mass. If not given, assumed much heavier than mw.
     :param interaction: string describing DM-nucleus interaction. See sigma_erec for options
     :param progress_bar: if True, show a progress bar during evaluation (if w is an array)
     
@@ -391,14 +391,20 @@ def vmin_migdal(w, erec, mw):
     return np.maximum(0, (mn * erec / (2 * mu_nucleus(mw)**2))**0.5 + w/(2 * mn * erec)**0.5)
 
 
-def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), progress_bar=False, **kwargs):
-    """Differential rate per unit detector mass and recoil energy of Migdal effect WIMP-nucleus scattering 
+def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
+                include_approx_nr=False,
+                progress_bar=False, **kwargs):
+    """Differential rate per unit detector mass and deposited ER energy of Migdal effect WIMP-nucleus scattering
     
-    :param w: ER energy deposited through Migdal effect
+    :param w: ER energy deposited in detector through Migdal effect
     :param mw: Mass of WIMP
     :param sigma_nucleon: WIMP/nucleon cross-section
     :param interaction: string describing DM-nucleus interaction. See sigma_erec for options
-    :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param m_med: Mediator mass. If not given, assumed much heavier than mw.
+    :param include_approx_nr: If True, instead return differential rate per *detected* energy,
+        including the contribution of the simultaneous NR signal approximately, assuming q_{NR} = 0.15.
+        This is how https://arxiv.org/abs/1707.07258 presented the Migdal spectra.
+    but allows reproduction of the spectra in
     :param progress_bar: if True, show a progress bar during evaluation (if w is an array)
     
     Further kwargs are passed to scipy.integrate.quad numeric integrator (e.g. error tolerance). 
@@ -407,9 +413,12 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
         return np.array([
             rate_migdal(w=e, mw=mw, sigma_nucleon=sigma_nucleon,
                         interaction=interaction, m_med=m_med,
+                        include_approx_nr=include_approx_nr,
                         progress_bar=progress_bar, **kwargs)
             for e in (tqdm if progress_bar else lambda x: x)(w)
         ])
+
+    include_approx_nr = 1 if include_approx_nr else 0
     
     # Maximum recoil energy for a nucleus
     e_max = 2 * mu_nucleus(mw)**2 * v_max**2 / mn                        
@@ -420,19 +429,19 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
         # (n=5 is the valence band in liquid so unreliable, n=1,2 contribute very little)
         if state[0] not in ['3', '4']:
             continue
-        
-        # Observed energy = energy of emitted electron + binding energy of state
-        eelec = w - binding_e
-        if eelec < 0:
-            continue
-            
-        # Look up differential probability
+
+        # Lookup for differential probability (units of ev^-1)
         p = interpolate.interp1d(df_migdal['E'].values * nu.eV, 
-                                 df_migdal[state].values,
+                                 df_migdal[state].values / nu.eV,
                                  bounds_error=False, 
-                                 fill_value=0)(eelec) / nu.eV
+                                 fill_value=0)
         
         def diff_rate(v, erec):
+            # Observed energy = energy of emitted electron + binding energy of state
+            eelec = w - binding_e - include_approx_nr * erec * 0.15
+            if eelec < 0:
+                return 0
+
             return (
                 # Usual elastic differential rate: common constants follow at end
                 sigma_erec(erec, v, mw, sigma_nucleon, interaction)
@@ -440,14 +449,15 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'), prog
                 * v * observed_speed_dist(v)
                 # Migdal effect |Z|^2
                 * (nu.me * (2 * erec / mn)**0.5 / (nu.eV/nu.c0))**2 / (2 * np.pi)
-                * p
+                * p(eelec)
             )
         
         # Note dblquad expects the function to be f(y, x), not f(x, y)...
         r = integrate.dblquad(
             diff_rate, 
             0, e_max,
-            lambda erec: vmin_migdal(w, erec, mw), lambda _: v_max,
+            lambda erec: vmin_migdal(w - include_approx_nr * erec * 0.15,
+                                     erec, mw), lambda _: v_max,
             **kwargs)[0]
         
         result += r
@@ -477,7 +487,7 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI', detection_mechanism='elas
              'elastic_nr' for regular elastic nuclear recoils
              'bremsstrahlung' for Bremsstrahlung photons
              'migdal' for the Migdal effect
-    :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param m_med: Mediator mass. If not given, assumed much heavier than mw.
     :param progress_bar: if True, show a progress bar during evaluation for multiple energies
     :returns: numpy array of same length as es, differential WIMP-nucleus scattering rates
 
@@ -497,7 +507,7 @@ def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'), **kwargs):
     :param es: Recoil energies in keV
     :param mw: WIMP mass in GeV/c^2
     :param sigma_nucleon: WIMP-nucleon cross-section in cm^2
-    :param m_med: Medator mass in GeV/c^2. If not given, assumed very heavy.
+    :param m_med: Medator mass in GeV/c^2. If not given, assumed much heavier than mw.
     :returns: numpy array of same length as es
     
     Further arguments are as for rate_wimp; see docstring of rate_wimp.
