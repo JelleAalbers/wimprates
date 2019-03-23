@@ -48,6 +48,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *,cover
+.pytest_cache
 
 # Translations
 *.mo
@@ -65,3 +66,10 @@ target/
 # Pycharm
 .idea
 /.project
+
+# Plots
+*.png
+*.pdf
+
+# Temp
+notebooks/dm_e

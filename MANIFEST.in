@@ -3,6 +3,6 @@ include LICENSE
 include README.rst
 include requirements.txt
 
-recursive-include notebooks *
+recursive-include notebooks tests *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
