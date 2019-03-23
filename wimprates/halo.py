@@ -8,18 +8,26 @@ from scipy.special import erf
 
 import wimprates as wr
 export, __all__ = wr.exporter()
-__all__ += 'rho_dm v_0 v_esc'.split()
 
 
-# Local dark matter density
-rho_dm = 0.3 * nu.GeV/nu.c0**2 / nu.cm**3
+@export
+def rho_dm():
+    """Local dark matter density"""
+    return 0.3 * nu.GeV/nu.c0**2 / nu.cm**3
 
-# Most common velocity of WIMPs in the halo,
-# relative to galactic center (asymptotic)
-v_0 = 220 * nu.km/nu.s
 
-# Galactic escape velocity
-v_esc = 544 * nu.km/nu.s
+@export
+def v_0():
+    """Most common velocity of WIMPs in the halo,
+    relative to galactic center (asymptotic)
+    """
+    return 220 * nu.km/nu.s
+
+
+@export
+def v_esc():
+    """Galactic escape velocity"""
+    return 544 * nu.km/nu.s
 
 
 # J2000.0 epoch conversion (converts datetime to days since epoch)
@@ -105,9 +113,9 @@ def v_earth(t=None):
 def v_max(t=None):
     """Return maximum observable dark matter velocity on Earth."""
     if t is None:
-        return v_esc + v_earth(t)
+        return v_esc() + v_earth(t)
     else:
-        return v_esc + np.sum(earth_velocity(t) ** 2) ** 0.5
+        return v_esc() + np.sum(earth_velocity(t) ** 2) ** 0.5
 
 
 @export
@@ -125,16 +133,18 @@ def observed_speed_dist(v, t=None):
     v_earth_t = v_earth(t)
 
     # Normalization constant, see Lewin&Smith appendix 1a
-    _w = v_esc/v_0
+    _w = v_esc()/v_0()
     k = erf(_w) - 2/np.pi**0.5 * _w * np.exp(-_w**2)
 
     # Maximum cos(angle) for this velocity, otherwise v0
-    xmax = np.minimum(1, (v_esc**2 - v_earth_t**2 - v**2)/(2 * v_earth_t * v))
+    xmax = np.minimum(1,
+                      (v_esc()**2 - v_earth_t**2 - v**2)
+                      / (2 * v_earth_t * v))
 
-    y = (k * v / (np.pi**0.5 * v_0 * v_earth_t)
-         * (np.exp(-((v-v_earth_t)/v_0)**2)
-            - np.exp(-1/v_0**2 * (v**2 + v_earth_t**2
-                                  + 2 * v * v_earth_t * xmax))))
+    y = (k * v / (np.pi**0.5 * v_0() * v_earth_t)
+         * (np.exp(-((v-v_earth_t)/v_0())**2)
+            - np.exp(-1/v_0()**2 * (v**2 + v_earth_t**2
+                                    + 2 * v * v_earth_t * xmax))))
 
     # Zero if v > v_max
     try:

@@ -1,7 +1,6 @@
 """Migdal effect
 
 """
-
 import numericalunits as nu
 import numpy as np
 import pandas as pd
@@ -26,15 +25,15 @@ binding_es_for_migdal = dict(zip(
               5.4e3, 4.9e3,
               1.1e3, 9.3e2, 6.6e2,
               2e2, 1.4e2, 6.1e1,
-              2.1e1, 9.8]) * nu.eV))
+              2.1e1, 9.8])))
 
 
 def vmin_migdal(w, erec, mw):
     """Return minimum WIMP velocity to make a Migdal signal with energy w,
     given elastic recoil energy erec and WIMP mass mw.
     """
-    y = (wr.mn * erec / (2 * wr.reduced_mass(wr.mn, mw) ** 2))**0.5
-    y += w / (2 * wr.mn * erec)**0.5
+    y = (wr.mn() * erec / (2 * wr.mu_nucleus(mw) ** 2))**0.5
+    y += w / (2 * wr.mn() * erec)**0.5
     return np.maximum(0, y)
 
 
@@ -69,6 +68,7 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
 
     result = 0
     for state, binding_e in binding_es_for_migdal.items():
+        binding_e *= nu.eV
         # Only consider n=3 and n=4
         # n=5 is the valence band so unreliable in in liquid
         # n=1,2 contribute very little
@@ -97,7 +97,7 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
 
                 # Migdal effect |Z|^2
                 # TODO: ?? what is explicit (eV/c)**2 doing here?
-                * (nu.me * (2 * erec / wr.mn)**0.5 / (nu.eV / nu.c0))**2
+                * (nu.me * (2 * erec / wr.mn())**0.5 / (nu.eV / nu.c0))**2
                 / (2 * np.pi)
                 * p(eelec))
 
@@ -113,4 +113,4 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
 
         result += r
 
-    return wr.rho_dm / mw * (1 / wr.mn) * result
+    return wr.rho_dm() / mw * (1 / wr.mn()) * result

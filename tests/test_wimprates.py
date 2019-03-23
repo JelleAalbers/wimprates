@@ -4,6 +4,7 @@ If you do update a computation, you'll have to change the hardcoded reference
 values here.
 
 """
+import numericalunits as nu
 import numpy as np
 
 import wimprates as wr
@@ -17,8 +18,13 @@ def isclose(x, y):
 
 
 def test_elastic():
-    isclose(wr.rate_wimp_std(1, **opts),
-            33.19098343826968)
+    ref = 33.19098343826968
+
+    isclose(wr.rate_wimp_std(1, **opts), ref)
+
+    # Test numericalunits.reset_units() does not affect results
+    nu.reset_units()
+    isclose(wr.rate_wimp_std(1, **opts), ref)
 
     # Test vectorized call
     energies = np.linspace(0.01, 40, 100)
@@ -44,5 +50,3 @@ def test_migdal():
 def test_brems():
     isclose(wr.rate_wimp_std(1, detection_mechanism='bremsstrahlung', **opts),
             0.00017062652972332665)
-
-

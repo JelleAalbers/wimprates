@@ -29,7 +29,7 @@ def vmin_w(w, mw):
 
     From Kouvaris/Pradler [arxiv:1607.01789v2], equation in text below eq. 10
     """
-    return (2 * w / wr.reduced_mass(wr.mn, mw))**0.5
+    return (2 * w / wr.mu_nucleus(mw))**0.5
 
 
 def erec_bound(sign, w, v, mw):
@@ -42,7 +42,7 @@ def erec_bound(sign, w, v, mw):
     :param mw: WIMP mass
     :param v: WIMP speed (earth/detector frame)
     """
-    return (wr.reduced_mass(wr.mn, mw)**2 * v**2 / wr.mn
+    return (wr.mu_nucleus(mw)**2 * v**2 / wr.mn()
             * (1
                - vmin_w(w, mw)**2 / (2 * v**2)
                + sign * (1 - vmin_w(w, mw)**2 / v**2)**0.5))
@@ -69,7 +69,7 @@ def sigma_w_erec(w, erec, v, mw, sigma_nucleon,
 
     # Note mn -> mn c^2, Kouvaris/Pradtler and McCabe use natural units
     return (4 * nu.alphaFS / (3 * np.pi * w) *
-            erec / (wr.mn * nu.c0**2) *
+            erec / (wr.mn() * nu.c0**2) *
             form_atomic**2 *
             wr.sigma_erec(erec, v, mw, sigma_nucleon, interaction, m_med))
 
@@ -129,7 +129,7 @@ def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI',
         return (sigma_w(w, v, mw, sigma_nucleon, interaction, m_med) *
                 v * wr.observed_speed_dist(v, t))
 
-    return wr.rho_dm / mw * (1 / wr.mn) * quad(
+    return wr.rho_dm() / mw * (1 / wr.mn()) * quad(
         integrand,
         vmin,
         wr.v_max(t),

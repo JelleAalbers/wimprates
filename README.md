@@ -14,9 +14,7 @@ Installation and usage
  - [See this basic example for usage.](https://github.com/JelleAalbers/wimprates/blob/master/notebooks/Example.ipynb)
 
 The package uses numericalunits (https://pypi.python.org/pypi/numericalunits); all function inputs
-are expected to have proper units. 
-
-**Do NOT call reset_units in your own code without reloading this module!**
+are expected to have proper units.
 
 
 Features
