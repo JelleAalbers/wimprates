@@ -1,9 +1,11 @@
 wimprates
 =========
 
+Differential rates of WIMP-nucleus scattering in the standard halo model, for liquid xenon detectors.
+
 `https://github.com/JelleAalbers/wimprates`
 
-Differential rates of WIMP-nucleus scattering in the standard halo model, for liquid xenon detectors.
+[![Build Status](https://travis-ci.org/JelleAalbers/wimprates.svg?branch=master)](https://travis-ci.org/JelleAalbers/wimprates)
 
 Installation and usage
 ----------------------
