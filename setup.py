@@ -6,7 +6,7 @@ requirements = open('requirements.txt').read().splitlines()
 
 setuptools.setup(
     name='wimprates',
-    version='0.2.0',
+    version='0.2.1',
     description='Differential rates of WIMP-nucleus scattering',
     long_description=readme + '\n\n' + history,
     author='Jelle Aalbers',
