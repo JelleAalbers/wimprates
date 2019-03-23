@@ -9,6 +9,7 @@ Differential rates of WIMP-nucleus scattering in the standard halo model, for li
 
 Installation and usage
 ----------------------
+
  - Clone the repository and `cd` into its directory
  - `pip install -e .`
  - [See this basic example for usage.](https://github.com/JelleAalbers/wimprates/blob/master/notebooks/Example.ipynb)
