@@ -31,9 +31,10 @@ How to cite
   - **Spin-dependent scattering**: Klos, P. et al., [Phys.Rev. D88 (2013) no.8, 083516](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.88.083516), Erratum: [Phys.Rev. D89 (2014) no.2, 029901](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.89.029901). [[arXiv:1304.7684]](https://arxiv.org/abs/1304.7684)  
   - **Bremsstrahlung**: C. Kouvaris and J. Pradler, [Phys. Rev. Lett. 118, 031803 (2017)](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.118.031803). [arXiv:1607.01789](https://arxiv.org/abs/1607.01789)
   - **Migdal effect**: M. Ibe et al., [JHEP 1803 (2018) 194](https://link.springer.com/article/10.1007/JHEP03(2018)194). [arXiv:1707.07258](https://arxiv.org/abs/1707.07258) 
+  - **Dark matter electron scattering**: R. Essig, T. Volansky, T.-T. Yu: [Phys. Rev. D 96, 043017 (2017)](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.96.043017). [arXiv:1703.00910](https://arxiv.org/abs/1703.00910).
+    - Ionization form factors from [Tien-Tien Yu's website](http://ddldm.physics.sunysb.edu/ddlDM/) ("Xe.mx"), retrieved March 2019.
 
 Contributors
 -------------
-
  * Jelle Aalbers
  * Bart Pelssers

@@ -50,3 +50,11 @@ def test_migdal():
 def test_brems():
     isclose(wr.rate_wimp_std(1, detection_mechanism='bremsstrahlung', **opts),
             0.00017062652972332665)
+
+
+def test_dme():
+    isclose(
+        wr.rate_dme(100* nu.eV, 4, 'd',
+                    mw=nu.GeV/nu.c0**2, sigma_dme=4e-44 * nu.cm**2)
+            * nu.kg * nu.keV * nu.day,
+    2.232912243660405e-06)

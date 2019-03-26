@@ -1,0 +1,75 @@
+Reference: Tien-Tien Yu, http://ddldm.physics.sunysb.edu/ddlDM/, retrieved 2019-03-23.
+
+For more details, see the publications listed there, especially:
+    R. Essig, T. Volansky and T. Yu, Phys. Rev. D 96, 043017 (2017). https://arxiv.org/abs/1703.00910.
+
+The integrated form factors are contained in the `Xe.mx` file on
+Tien-Tien Yu's website, in symbols such as `Xe5pFullAlt` (for the 5p shell).
+
+Although it is not explicitly documented, we can infer from the
+mathematica notebook `LDM_Xenon.nb` that `Xe5pFullAlt` contains:
+
+   [[lnkmin, lnkmax, lnqmin, lnqmax], form_factor_matrix]
+
+Here:
+  * The `form_factor_matrix` contains the squared ionization form factor
+    evaluated on a regular grid in $\mathrm{lnk}$ and $\mathrm{lnq}$.
+    Its shape is shape (Nk, Nq).
+  * $log_{10} (E_R / R_y) = 2 \mathrm{lnk} / \ln(10)$ is used in the notebook,
+    thus $\mathrm{lnk} = 0.5 \cdot \ln(10) log_{10} (E_R / R_y) = 0.5 \cdot \ln(E_R / R_y)$,
+    where $R_y$ is the Rydberg energy (13.6 eV).
+  * $log_{10} (q / (\alpha m_e c)) = \mathrm{lnq} / \ln(10) = \exp{\mathrm{lnq}}$,
+  is used in the notebook, thus $\mathrm{lnq} = \ln(q / (\alpha m_e c))$.
+
+To get the data out of Mathematica-land, use
+
+    Export["Xe5pFullAlt.csv", Xe5pFullAlt]
+
+and similar commands for the other shells.
+
+This creates csvs that you can read and convert to a pickle with the code below:
+
+    import numpy as np
+    results = dict()
+
+    for fn in os.listdir('./tty_csvs'):
+        if not fn.endswith('csv'):
+            continue
+        shell = fn[2:4]
+
+        # Load the sort-of-csv files with the form factor data
+        # These are Mathematica exports from TTY's Xe.mx file
+        # (.mx is a proprietary Mathematica format python can't load directly)
+        with open('./tty/' + fn, mode='r') as f:
+            for i, line in enumerate(list(f.readlines())):
+                for x in '{"':
+                    line = line.replace(x, '')
+                line = line.replace('*^', 'e')
+                line = line.replace(',', ' ')
+                if i == 0:
+                    # First line contains the argument ranges
+                    # Mathematica [[1, 2, 1]], [[1, 2, 1]] = python [0,1,1], [0,1,2] = lnqmin, lnqmax
+                    # Mathematica [[1, 1, 1]], [[1, 1, 2]] = python [0,0,0], [0,0,1] = lnkmin, lnkmax
+                    line = line.replace('}','')
+                    lnkmin, lnkmax, lnqmin, lnqmax = [float(x) for x in line.split()]
+                elif i == 1:
+                    # Second line contains the form factor data
+                    result = []
+                    for blob in line.split('}'):
+                        stuff = [float(x) for x in blob.split()]
+                        if len(stuff):
+                            result.append(stuff)
+                else:
+                    raise ValueError("Another line??")
+
+        result = np.array(result)
+
+        # Coordinates of form factor data
+        lnks = np.linspace(lnkmin, lnkmax, result.shape[0])
+        lnqs = np.linspace(lnqmin, lnqmax, result.shape[1])
+
+        results[shell] = dict(lnks=lnks, lnqs=lnqs, ffsquared=result)
+
+    import pickle
+    with open('dme_ionization_ff.pkl', mode='wb') as f:
+        pickle.dump(results, f)

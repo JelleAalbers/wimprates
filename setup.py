@@ -17,7 +17,7 @@ setuptools.setup(
     install_requires=requirements,
     package_dir={'wimprates': 'wimprates'},
     package_data={'wimprates': [
-        'data/bs/*', 'data/migdal/*', 'data/sd/*']},
+        'data/bs/*', 'data/migdal/*', 'data/sd/*', 'data/dme/*']},
     tests_require=requirements + ['pytest'],
     keywords='wimp,spin-dependent,spin-independent,bremsstrahlung,migdal',
     classifiers=['Intended Audience :: Science/Research',
