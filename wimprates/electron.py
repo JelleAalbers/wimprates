@@ -7,7 +7,7 @@ from scipy.integrate import quad, dblquad
 
 import wimprates as wr
 export, __all__ = wr.exporter()
-__all__ += ['dme_shells']
+__all__ += ['dme_shells', 'l_to_letter', 'l_to_number']
 
 # Load form factor and construct interpolators
 shell_data = wr.load_pickle('dme/dme_ionization_ff.pkl')
@@ -17,7 +17,18 @@ for _shell, _sd in shell_data.items():
         np.log10(_sd['ffsquared']),
         bounds_error=False, fill_value=-float('inf'),)
 
-dme_shells = [(4, 0), (4, 1), (4, 2), (5, 0), (5, 1)]
+
+dme_shells = [(5, 1), (5, 0), (4, 2), (4, 1), (4, 0)]
+l_to_number = dict(s=0, p=1, d=2, f=3)
+l_to_letter = {v: k for k, v in l_to_number.items()}
+
+
+@export
+def shell_str(n, l):
+    if isinstance(l, str):
+        return str(n) + l
+    return str(n) + l_to_letter[l]
+
 
 
 @export
@@ -32,6 +43,9 @@ def dme_ionization_ff(shell, e_er, q):
     :param e_er: Electronic recoil energy
     :param q: Momentun transfer
     """
+    if isinstance(shell, tuple):
+        shell = shell_str(*shell)
+
     lnq = np.log(q / (nu.me * nu.c0 * nu.alphaFS))
     # From Mathematica: (*ER*) (2 lnkvalues[[j]])/Log[10]
     # log10 (E/Ry) = 2 lnk / ln10
@@ -44,10 +58,6 @@ def dme_ionization_ff(shell, e_er, q):
         np.vstack([lnk, lnq]).T))
 
 
-l_to_number = dict(s=0, p=1, d=2, f=3)
-l_to_letter = {v: k for k, v in l_to_number.items()}
-
-
 @export
 def binding_es_for_dme(n, l):
     """Return binding energy of Xenon's (n, l) orbital
@@ -55,16 +65,12 @@ def binding_es_for_dme(n, l):
 
     Note these are different from e.g. Ibe et al. 2017!
     """
-    l_ = l      # PEP8 doesn't like l as variable. Fine as arg though...
-    if isinstance(l, str):
-        l_ = l_to_number[l]
-    return {
-               (4, 0): 213.8,
-               (4, 1): 163.5,
-               (4, 2): 75.6,
-               (5, 0): 25.7,
-               (5, 1): 12.4
-           }[(n, l_)] * nu.eV
+
+    return {'4s': 213.8,
+            '4p': 163.5,
+            '4d': 75.6,
+            '5s': 25.7,
+            '5p': 12.4}[shell_str(n, l)] * nu.eV
 
 
 @export
@@ -111,14 +117,8 @@ def rate_dme(erec, n, l, mw, sigma_dme,
     :param t: A J2000.0 timestamp.
     If not given, a conservative velocity distribution is used.
     """
-    if isinstance(l, str):
-        l_ = l
-    else:
-        l_ = l_to_letter[l]
-    del l
-
-    shell = str(n) + l_
-    eb = binding_es_for_dme(n, l_)
+    shell = shell_str(n, l)
+    eb = binding_es_for_dme(n, l)
 
     # No bounds are given for the q integral
     # but the form factors are only specified in a limited range of q

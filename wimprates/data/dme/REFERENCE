@@ -1,13 +1,9 @@
-Reference: Tien-Tien Yu, http://ddldm.physics.sunysb.edu/ddlDM/, retrieved 2019-03-23.
+Ionization form factors from:
+ - T.-T. Yu, http://ddldm.physics.sunysb.edu/ddlDM/, 2018-11-05.
+ - R. Essig, T. Volansky and T.-T. Yu, Phys. Rev. D 96, 043017 (2017). https://arxiv.org/abs/1703.00910.
 
-For more details, see the publications listed there, especially:
-    R. Essig, T. Volansky and T. Yu, Phys. Rev. D 96, 043017 (2017). https://arxiv.org/abs/1703.00910.
-
-The integrated form factors are contained in the `Xe.mx` file on
-Tien-Tien Yu's website, in symbols such as `Xe5pFullAlt` (for the 5p shell).
-
-Although it is not explicitly documented, we can infer from the
-mathematica notebook `LDM_Xenon.nb` that `Xe5pFullAlt` contains:
+The integrated form factors are contained in the `Xe.mx` file,
+ n symbols such as `Xe5pFullAlt` (for the 5p shell). These contain:
 
    [[lnkmin, lnkmax, lnqmin, lnqmax], form_factor_matrix]
 
@@ -25,13 +21,14 @@ To get the data out of Mathematica-land, use
 
     Export["Xe5pFullAlt.csv", Xe5pFullAlt]
 
-and similar commands for the other shells.
-
-This creates csvs that you can read and convert to a pickle with the code below:
+and similar commands for the other shells. This creates text files
+that you can convert to a pickle using the code below:
 
     import numpy as np
     results = dict()
 
+    # Assuming Mathematica exports are in the directory
+    # ./tty_csvs
     for fn in os.listdir('./tty_csvs'):
         if not fn.endswith('csv'):
             continue
@@ -48,7 +45,7 @@ This creates csvs that you can read and convert to a pickle with the code below:
                 line = line.replace(',', ' ')
                 if i == 0:
                     # First line contains the argument ranges
-                    # Mathematica [[1, 2, 1]], [[1, 2, 1]] = python [0,1,1], [0,1,2] = lnqmin, lnqmax
+                    # Mathematica [[1, 2, 1]], [[1, 2, 2]] = python [0,1,0], [0,1,1] = lnqmin, lnqmax
                     # Mathematica [[1, 1, 1]], [[1, 1, 2]] = python [0,0,0], [0,0,1] = lnkmin, lnkmax
                     line = line.replace('}','')
                     lnkmin, lnkmax, lnqmin, lnqmax = [float(x) for x in line.split()]
