@@ -105,6 +105,7 @@ inverse_mean_speed_kms = interp1d(
 @export
 @wr.vectorize_first
 def rate_dme(erec, n, l, mw, sigma_dme,
+             f_dm='1',
              t=None, **kwargs):
     """Return differential rate of dark matter electron scattering vs energy
     (i.e. dr/dE, not dr/dlogE)
@@ -114,11 +115,21 @@ def rate_dme(erec, n, l, mw, sigma_dme,
     :param mw: DM mass
     :param sigma_dme: DM-free electron scattering cross-section at fixed
     momentum transfer q=0
+    :param f_dm: One of the following:
+     '1':     |F_DM|^2 = 1, contact interaction / heavy mediator (default)
+     '1_q':   |F_DM|^2 = (\alpha m_e c / q), dipole moment
+     '1_q2': |F_DM|^2 = (\alpha m_e c / q)^2, ultralight mediator
     :param t: A J2000.0 timestamp.
     If not given, a conservative velocity distribution is used.
     """
     shell = shell_str(n, l)
     eb = binding_es_for_dme(n, l)
+
+    f_dm = {
+        '1': lambda q: 1,
+        '1_q': lambda q: nu.alphaFS * nu.me * nu.c0 / q,
+        '1_q2': lambda q: (nu.alphaFS * nu.me * nu.c0 / q)**2
+    }[f_dm]
 
     # No bounds are given for the q integral
     # but the form factors are only specified in a limited range of q
@@ -130,7 +141,7 @@ def rate_dme(erec, n, l, mw, sigma_dme,
         # so we only have to do a single integral
         def diff_xsec(q):
             vmin = v_min_dme(eb, erec, q, mw)
-            result = q * dme_ionization_ff(shell, erec, q)
+            result = q * dme_ionization_ff(shell, erec, q) * f_dm(q)**2
             # Note the interpolator is in kms, not unit-carrying numbers
             # see above
             result *= inverse_mean_speed_kms(vmin / (nu.km/nu.s))
@@ -143,7 +154,7 @@ def rate_dme(erec, n, l, mw, sigma_dme,
         # Have to do double integral
         # Note dblquad expects the function to be f(y, x), not f(x, y)...
         def diff_xsec(v, q):
-            result = q * dme_ionization_ff(shell, erec, q)
+            result = q * dme_ionization_ff(shell, erec, q) * f_dm(q)**2
             result *= 1 / v * wr.observed_speed_dist(v, t)
             return result
 
