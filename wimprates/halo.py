@@ -110,8 +110,9 @@ def v_earth(t=None):
 
 
 @export
-def v_max(t=None,v_esc_value = v_esc()):
+def v_max(t=None,v_esc_value = None):
     """Return maximum observable dark matter velocity on Earth."""
+    v_esc_value = v_esc() if v_esc_value is None else v_esc_value #default args do not change value when you do a reset_unit so this is necessary to avoid errors
     if t is None:
         return v_esc_value + v_earth(t)
     else:
@@ -119,7 +120,7 @@ def v_max(t=None,v_esc_value = v_esc()):
 
 
 @export
-def observed_speed_dist(v, t=None, v_0_value=v_0(), v_esc_value=v_esc()):
+def observed_speed_dist(v, t=None, v_0_value=None, v_esc_value=None):
     """Observed distribution of dark matter particle speeds on earth
     under the standard halo model.
 
@@ -132,6 +133,8 @@ def observed_speed_dist(v, t=None, v_0_value=v_0(), v_esc_value=v_esc()):
 
     Further inputs: scale velocity v_0_value and escape velocity v_esc_value
     """
+    v_0_value = v_0() if v_0_value is None else v_0_value
+    v_esc_value = v_esc() if v_esc_value is None else v_esc_value
     v_earth_t = v_earth(t)
 
     # Normalization constant, see Lewin&Smith appendix 1a
@@ -175,10 +178,10 @@ class standard_halo_model:
         The standard halo model also allows variation of v_0
         :param v_0 
     """
-    def __init__(self, v_0_value = v_0(), v_esc_value=v_esc(),rho_dm_value=rho_dm()):
-        self.v_0 = v_0_value
-        self.v_esc = v_esc_value
-        self.rho_dm = rho_dm_value
+    def __init__(self, v_0_value =None, v_esc_value=None,rho_dm_value=None):
+        self.v_0 = v_0() if v_0_value is None else v_0_value
+        self.v_esc = v_esc() if v_esc_value is None else v_esc_value
+        self.rho_dm = rho_dm() if rho_dm_value is None else rho_dm_value
     def velocity_dist(self,v,t):
         #in units of per velocity, 
         #v is in units of velocity 

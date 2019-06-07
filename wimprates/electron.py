@@ -74,13 +74,12 @@ def binding_es_for_dme(n, l):
 
 
 @export
-def v_min_dme(eb, erec, q, mw, halo_model = wr.standard_halo_model()):
+def v_min_dme(eb, erec, q, mw):
     """Minimal DM velocity for DM-electron scattering
     :param eb: binding energy of shell
     :param erec: electronic recoil energy energy
     :param q: momentum transfer
     :param mw: DM mass
-    :param halo_model: class (default to standard halo model) containing velocity distribution
     """
     return (erec + eb) / q + q / (2 * mw)
 
@@ -106,7 +105,7 @@ inverse_mean_speed_kms = interp1d(
 @export
 @wr.vectorize_first
 def rate_dme(erec, n, l, mw, sigma_dme,
-             t=None, halo_model = wr.standard_halo_model(), **kwargs):
+             t=None, halo_model = None, **kwargs):
     """Return differential rate of dark matter electron scattering vs energy
     (i.e. dr/dE, not dr/dlogE)
     :param erec: Electronic recoil energy
@@ -119,6 +118,7 @@ def rate_dme(erec, n, l, mw, sigma_dme,
     If not given, a conservative velocity distribution is used.
     :param halo_model: class (default to standard halo model) containing velocity distribution
     """
+    halo_model = wr.standard_halo_model() if halo_model is None else halo_model
     shell = shell_str(n, l)
     eb = binding_es_for_dme(n, l)
 
@@ -131,7 +131,7 @@ def rate_dme(erec, n, l, mw, sigma_dme,
         # Use precomputed inverse mean speed,
         # so we only have to do a single integral
         def diff_xsec(q):
-            vmin = v_min_dme(eb, erec, q, mw, halo_model=halo_model)
+            vmin = v_min_dme(eb, erec, q, mw)
             result = q * dme_ionization_ff(shell, erec, q)
             # Note the interpolator is in kms, not unit-carrying numbers
             # see above
