@@ -41,7 +41,7 @@ def vmin_migdal(w, erec, mw):
 @wr.vectorize_first
 def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
                 include_approx_nr=False,
-                t=None, **kwargs):
+                t=None, halo_model = wr.standard_halo_model(), **kwargs):
     """Differential rate per unit detector mass and deposited ER energy of
     Migdal effect WIMP-nucleus scattering
 
@@ -58,6 +58,7 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
         presented the Migdal spectra.
     :param t: A J2000.0 timestamp.
     If not given, conservative velocity distribution is used.
+    :param halo_model: class (default to standard halo model) containing velocity distribution
     :param progress_bar: if True, show a progress bar during evaluation
     (if w is an array)
 
@@ -93,7 +94,7 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
                 # common constants follow at end
                 wr.sigma_erec(erec, v, mw, sigma_nucleon, interaction,
                               m_med=m_med)
-                * v * wr.observed_speed_dist(v, t)
+                * v * halo_model.velocity_dist(v, t)
 
                 # Migdal effect |Z|^2
                 # TODO: ?? what is explicit (eV/c)**2 doing here?
@@ -105,12 +106,12 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
         r = dblquad(
             diff_rate,
             0,
-            wr.e_max(mw, wr.v_max(t)),
+            wr.e_max(mw, wr.v_max(t, halo_model.v_esc)),
             lambda erec: vmin_migdal(w - include_approx_nr * erec * 0.15,
                                      erec, mw),
-            lambda _: wr.v_max(t),
+            lambda _: wr.v_max(t, halo_model.v_esc),
             **kwargs)[0]
 
         result += r
 
-    return wr.rho_dm() / mw * (1 / wr.mn()) * result
+    return halo_model.rho_dm / mw * (1 / wr.mn()) * result

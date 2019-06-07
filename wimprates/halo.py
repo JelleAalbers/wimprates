@@ -110,16 +110,16 @@ def v_earth(t=None):
 
 
 @export
-def v_max(t=None):
+def v_max(t=None,v_esc_value = v_esc()):
     """Return maximum observable dark matter velocity on Earth."""
     if t is None:
-        return v_esc() + v_earth(t)
+        return v_esc_value + v_earth(t)
     else:
-        return v_esc() + np.sum(earth_velocity(t) ** 2) ** 0.5
+        return v_esc_value + np.sum(earth_velocity(t) ** 2) ** 0.5
 
 
 @export
-def observed_speed_dist(v, t=None):
+def observed_speed_dist(v, t=None, v_0_value=v_0(), v_esc_value=v_esc()):
     """Observed distribution of dark matter particle speeds on earth
     under the standard halo model.
 
@@ -129,21 +129,23 @@ def observed_speed_dist(v, t=None):
 
     Optionally supply J2000.0 time t to take into account Earth's orbital
     velocity.
+
+    Further inputs: scale velocity v_0_value and escape velocity v_esc_value
     """
     v_earth_t = v_earth(t)
 
     # Normalization constant, see Lewin&Smith appendix 1a
-    _w = v_esc()/v_0()
+    _w = v_esc_value/v_0_value
     k = erf(_w) - 2/np.pi**0.5 * _w * np.exp(-_w**2)
 
     # Maximum cos(angle) for this velocity, otherwise v0
     xmax = np.minimum(1,
-                      (v_esc()**2 - v_earth_t**2 - v**2)
+                      (v_esc_value**2 - v_earth_t**2 - v**2)
                       / (2 * v_earth_t * v))
 
-    y = (k * v / (np.pi**0.5 * v_0() * v_earth_t)
-         * (np.exp(-((v-v_earth_t)/v_0())**2)
-            - np.exp(-1/v_0()**2 * (v**2 + v_earth_t**2
+    y = (k * v / (np.pi**0.5 * v_0_value * v_earth_t)
+         * (np.exp(-((v-v_earth_t)/v_0_value)**2)
+            - np.exp(-1/v_0_value**2 * (v**2 + v_earth_t**2
                                     + 2 * v * v_earth_t * xmax))))
 
     # Zero if v > v_max
@@ -151,11 +153,31 @@ def observed_speed_dist(v, t=None):
         len(v)
     except TypeError:
         # Scalar argument
-        if v > v_max(t):
+        if v > v_max(t, v_esc_value):
             return 0
         else:
             return y
     else:
         # Array argument
-        y[v > v_max(t)] = 0
+        y[v > v_max(t, v_esc_value)] = 0
         return y
+
+@export 
+class standard_halo_model:
+    """
+        class used to pass a halo model to the rate computation
+        must contain: 
+        :param v_esc -- escape velocity
+        :function velocity_dist -- function taking v,t giving normalised valocity distribution in earth rest-frame. 
+        :param rho_dm -- density in mass/volume of dark matter at the Earth
+        The standard halo model also allows variation of v_0
+        :param v_0 
+    """
+    def __init__(self, v_0_value = v_0(), v_esc_value=v_esc(),rho_dm_value=rho_dm())
+        self.v_0 = v_0_value
+        self.v_esc = v_esc_value
+        self.rho_dm = rho_dm_value
+    def velocity_dist(self,v,t):
+        #in units of per velocity, 
+        #v is in units of velocity 
+        return observed_speed_dist(v, t=None, self.v_0, self.v_esc)

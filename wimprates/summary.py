@@ -9,7 +9,8 @@ export, __all__ = wr.exporter()
 
 @export
 def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
-              detection_mechanism='elastic_nr', m_med=float('inf'), t=None,
+              detection_mechanism='elastic_nr', m_med=float('inf'),
+              t=None, halo_model = wr.standard_halo_model() ,
               **kwargs):
     """Differential rate per unit time, unit detector mass
     and unit recoil energy of WIMP-nucleus scattering.
@@ -50,11 +51,12 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
             "Unsupported detection mechanism '%s'" % detection_mechanism)
     return dmechs[detection_mechanism](
         es, mw=mw, sigma_nucleon=sigma_nucleon, interaction=interaction,
-        m_med=m_med, t=t, **kwargs)
+        m_med=m_med, halo_model=halo_model, t=t, **kwargs)
 
 
 @export
-def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'), t=None, **kwargs):
+def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'),
+        t=None, halo_model = wr.standard_halo_model() , **kwargs):
     """Differential rate per (ton year keV) of WIMP-nucleus scattering.
     :param es: Recoil energies in keV
     :param mw: WIMP mass in GeV/c^2
@@ -62,6 +64,7 @@ def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'), t=None, **kwargs):
     :param m_med: Medator mass in GeV/c^2. If not given, assumed very heavy.
     :param t: A J2000.0 timestamp. If not given,
     conservative velocity distribution is used.
+    :function halo_model : class (similar to the standard halo model) giving velocity distribution and dark matter density
     :returns: numpy array of same length as es
 
     Further arguments are as for rate_wimp; see docstring of rate_wimp.
@@ -69,5 +72,6 @@ def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'), t=None, **kwargs):
     return (rate_wimp(es=es * nu.keV,
                       mw=mw * nu.GeV/nu.c0**2,
                       sigma_nucleon=sigma_nucleon * nu.cm**2,
-                      m_med=m_med * nu.GeV/nu.c0**2, t=t, **kwargs)
+                      m_med=m_med * nu.GeV/nu.c0**2, 
+                      t=t, halo_model=halo_model, **kwargs)
             * (nu.keV * (1000 * nu.kg) * nu.year))
