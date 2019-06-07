@@ -103,7 +103,7 @@ def sigma_w(w, v, mw, sigma_nucleon,
 @wr.vectorize_first
 def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI',
                         m_med=float('inf'), t=None, 
-                        halo_model = wr.standard_halo_model(),**kwargs):
+                        halo_model = None,**kwargs):
     """Differential rate per unit detector mass and recoil energy of
     Bremsstrahlung elastic WIMP-nucleus scattering.
 
@@ -122,6 +122,7 @@ def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI',
     Further kwargs are passed to scipy.integrate.quad numeric integrator
     (e.g. error tolerance).
     """
+    halo_model = wr.standard_halo_model() if halo_model is None else halo_model
     vmin = vmin_w(w, mw)
 
     if vmin >= wr.v_max(t, halo_model.v_esc):

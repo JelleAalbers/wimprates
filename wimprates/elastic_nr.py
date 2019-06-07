@@ -179,7 +179,7 @@ def vmin_elastic(erec, mw):
 @wr.vectorize_first
 def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
         m_med=float('inf'), t=None, 
-        halo_model = wr.standard_halo_model(), **kwargs):
+        halo_model = None, **kwargs):
     """Differential rate per unit detector mass and recoil energy of
     elastic WIMP scattering
 
@@ -200,6 +200,7 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
 
     Analytic expressions are known for this rate, but they are not used here.
     """
+    halo_model = wr.standard_halo_model() if halo_model is None else halo_model
     v_min = vmin_elastic(erec, mw)
 
     if v_min >= wr.v_max(t, halo_model.v_esc):

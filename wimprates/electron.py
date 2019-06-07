@@ -146,7 +146,7 @@ def rate_dme(erec, n, l, mw, sigma_dme,
         # Note dblquad expects the function to be f(y, x), not f(x, y)...
         def diff_xsec(v, q):
             result = q * dme_ionization_ff(shell, erec, q)
-            result *= 1 / v * halo_model.valocity_dist(v, t)
+            result *= 1 / v * halo_model.velocity_dist(v, t)
             return result
 
         r = dblquad(
