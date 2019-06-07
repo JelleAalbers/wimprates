@@ -206,8 +206,7 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
         return 0
 
     def integrand(v):
-        return (sigma_erec(erec, v, mw, sigma_nucleon, interaction, m_med)
-                * v * halo_model.velocity_dist(v, t))
+        return (sigma_erec(erec, v, mw, sigma_nucleon, interaction, m_med) * v * halo_model.velocity_dist(v, t))
 
     return halo_model.rho_dm / mw * (1 / mn()) * quad(
         integrand,

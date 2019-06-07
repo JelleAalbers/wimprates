@@ -136,17 +136,19 @@ def observed_speed_dist(v, t=None, v_0_value=v_0(), v_esc_value=v_esc()):
 
     # Normalization constant, see Lewin&Smith appendix 1a
     _w = v_esc_value/v_0_value
-    k = erf(_w) - 2/np.pi**0.5 * _w * np.exp(-_w**2)
+    k = erf(_w) - 2/np.pi**0.5 * _w * np.exp(-_w**2) #unitless
 
     # Maximum cos(angle) for this velocity, otherwise v0
     xmax = np.minimum(1,
                       (v_esc_value**2 - v_earth_t**2 - v**2)
                       / (2 * v_earth_t * v))
+    #unitless
 
     y = (k * v / (np.pi**0.5 * v_0_value * v_earth_t)
          * (np.exp(-((v-v_earth_t)/v_0_value)**2)
             - np.exp(-1/v_0_value**2 * (v**2 + v_earth_t**2
                                     + 2 * v * v_earth_t * xmax))))
+            #units / (velocity)
 
     # Zero if v > v_max
     try:
@@ -173,11 +175,11 @@ class standard_halo_model:
         The standard halo model also allows variation of v_0
         :param v_0 
     """
-    def __init__(self, v_0_value = v_0(), v_esc_value=v_esc(),rho_dm_value=rho_dm())
+    def __init__(self, v_0_value = v_0(), v_esc_value=v_esc(),rho_dm_value=rho_dm()):
         self.v_0 = v_0_value
         self.v_esc = v_esc_value
         self.rho_dm = rho_dm_value
     def velocity_dist(self,v,t):
         #in units of per velocity, 
         #v is in units of velocity 
-        return observed_speed_dist(v, t=None, self.v_0, self.v_esc)
+        return observed_speed_dist(v, t, self.v_0, self.v_esc)

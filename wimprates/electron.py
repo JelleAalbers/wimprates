@@ -86,11 +86,11 @@ def v_min_dme(eb, erec, q, mw, halo_model = wr.standard_halo_model()):
 
 
 # Precompute velocity integrals for t=None
-_v_mins = np.linspace(0, 1, 1000) * wr.v_max(None, halo_model.v_esc)
+_v_mins = np.linspace(0, 1, 1000) * wr.v_max(None, wr.v_esc())
 _ims = np.array([
-    quad(lambda v: 1 / v * halo_model.velocity_dist(v),
+    quad(lambda v: 1 / v * wr.observed_speed_dist(v),
          _v_min,
-         wr.v_max(None, halo_model.v_esc))[0]
+         wr.v_max(None, wr.v_esc() ))[0]
     for _v_min in _v_mins])
 
 # Store interpolator in km/s rather than unit-dependent numbers
