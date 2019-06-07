@@ -23,7 +23,7 @@ def test_elastic():
     isclose(wr.rate_wimp_std(1, **opts), ref)
 
     # Test numericalunits.reset_units() does not affect results
-    nu.reset_units("SI")
+    nu.reset_units(123)
     isclose(wr.rate_wimp_std(1, **opts), ref)
 
     # Test vectorized call
@@ -63,5 +63,5 @@ def test_halo_scaling():
     #check that passing rho multiplies the rate correctly:
     ref = 33.19098343826968
 
-    isclose(wr.rate_wimp_std(1,halo_model = wr.standard_halo_model(rho_dm_value = wr.rho_dm()) , **opts), ref)
+    isclose(wr.rate_wimp_std(1,halo_model = wr.StandardHaloModel(rho_dm = 0.3 * nu.GeV/nu.c0**2 / nu.cm**3) , **opts), ref)
 

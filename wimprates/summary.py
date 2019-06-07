@@ -10,7 +10,7 @@ export, __all__ = wr.exporter()
 @export
 def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
               detection_mechanism='elastic_nr', m_med=float('inf'),
-              t=None, halo_model = None ,
+              t=None, halo_model=None,
               **kwargs):
     """Differential rate per unit time, unit detector mass
     and unit recoil energy of WIMP-nucleus scattering.
@@ -43,7 +43,7 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
     Further kwargs are passed to scipy.integrate.quad numeric integrator
     (e.g. error tolerance).
     """
-    halo_model = wr.standard_halo_model() if halo_model is None else halo_model
+    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     dmechs = dict(elastic_nr=wr.rate_elastic,
                   bremsstrahlung=wr.rate_bremsstrahlung,
                   migdal=wr.rate_migdal)
@@ -57,7 +57,7 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
 
 @export
 def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'),
-        t=None, halo_model = None , **kwargs):
+                  t=None, halo_model=None, **kwargs):
     """Differential rate per (ton year keV) of WIMP-nucleus scattering.
     :param es: Recoil energies in keV
     :param mw: WIMP mass in GeV/c^2
@@ -65,15 +65,16 @@ def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'),
     :param m_med: Medator mass in GeV/c^2. If not given, assumed very heavy.
     :param t: A J2000.0 timestamp. If not given,
     conservative velocity distribution is used.
-    :function halo_model : class (similar to the standard halo model) giving velocity distribution and dark matter density
+    :function halo_model : class (similar to the standard
+    halo model) giving velocity distribution and dark matter density
     :returns: numpy array of same length as es
 
     Further arguments are as for rate_wimp; see docstring of rate_wimp.
     """
-    halo_model = wr.standard_halo_model() if halo_model is None else halo_model
+    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     return (rate_wimp(es=es * nu.keV,
                       mw=mw * nu.GeV/nu.c0**2,
                       sigma_nucleon=sigma_nucleon * nu.cm**2,
-                      m_med=m_med * nu.GeV/nu.c0**2, 
+                      m_med=m_med * nu.GeV/nu.c0**2,
                       t=t, halo_model=halo_model, **kwargs)
             * (nu.keV * (1000 * nu.kg) * nu.year))

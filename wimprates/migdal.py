@@ -41,7 +41,7 @@ def vmin_migdal(w, erec, mw):
 @wr.vectorize_first
 def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
                 include_approx_nr=False,
-                t=None, halo_model = None, **kwargs):
+                t=None, halo_model=None, **kwargs):
     """Differential rate per unit detector mass and deposited ER energy of
     Migdal effect WIMP-nucleus scattering
 
@@ -58,14 +58,15 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
         presented the Migdal spectra.
     :param t: A J2000.0 timestamp.
     If not given, conservative velocity distribution is used.
-    :param halo_model: class (default to standard halo model) containing velocity distribution
+    :param halo_model: class (default to standard halo model)
+    containing velocity distribution
     :param progress_bar: if True, show a progress bar during evaluation
     (if w is an array)
 
     Further kwargs are passed to scipy.integrate.quad numeric integrator
     (e.g. error tolerance).
     """
-    halo_model = wr.standard_halo_model() if halo_model is None else halo_model
+    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     include_approx_nr = 1 if include_approx_nr else 0
 
     result = 0

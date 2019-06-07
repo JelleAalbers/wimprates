@@ -85,21 +85,27 @@ def v_min_dme(eb, erec, q, mw):
 
 
 # Precompute velocity integrals for t=None
-_v_mins = np.linspace(0, 1, 1000) * wr.v_max(None, wr.v_esc())
-_ims = np.array([
-    quad(lambda v: 1 / v * wr.observed_speed_dist(v),
-         _v_min,
-         wr.v_max(None, wr.v_esc() ))[0]
-    for _v_min in _v_mins])
+@export 
+def velocity_integral_without_time(halo_model=None):
+    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
+    _v_mins = np.linspace(0, 1, 1000) * wr.v_max(None, halo_model.v_esc)
+    _ims = np.array([
+        quad(lambda v: 1 / v * halo_model.velocity_dist(v,None),
+            _v_min,
+             wr.v_max(None, halo_model.v_esc ))[0]
+        for _v_min in _v_mins])
+    
+    # Store interpolator in km/s rather than unit-dependent numbers
+    # so we don't have to recalculate them when nu.reset_units() is called
+    inverse_mean_speed_kms = interp1d(
+        _v_mins / (nu.km/nu.s),
+        _ims * (nu.km/nu.s),
+        # If we don't have 0 < v_min < v_max, we want to return 0
+        # so the integrand vanishes
+        fill_value=0, bounds_error=False)
+    return inverse_mean_speed_kms
 
-# Store interpolator in km/s rather than unit-dependent numbers
-# so we don't have to recalculate them when nu.reset_units() is called
-inverse_mean_speed_kms = interp1d(
-    _v_mins / (nu.km/nu.s),
-    _ims * (nu.km/nu.s),
-    # If we don't have 0 < v_min < v_max, we want to return 0
-    # so the integrand vanishes
-    fill_value=0, bounds_error=False)
+inverse_mean_speed_kms = velocity_integral_without_time()
 
 
 @export
@@ -118,7 +124,7 @@ def rate_dme(erec, n, l, mw, sigma_dme,
     If not given, a conservative velocity distribution is used.
     :param halo_model: class (default to standard halo model) containing velocity distribution
     """
-    halo_model = wr.standard_halo_model() if halo_model is None else halo_model
+    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     shell = shell_str(n, l)
     eb = binding_es_for_dme(n, l)
 
