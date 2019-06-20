@@ -85,27 +85,33 @@ def v_min_dme(eb, erec, q, mw):
 
 
 # Precompute velocity integrals for t=None
-_v_mins = np.linspace(0, 1, 1000) * wr.v_max()
-_ims = np.array([
-    quad(lambda v: 1 / v * wr.observed_speed_dist(v),
-         _v_min,
-         wr.v_max())[0]
-    for _v_min in _v_mins])
+@export 
+def velocity_integral_without_time(halo_model=None):
+    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
+    _v_mins = np.linspace(0, 1, 1000) * wr.v_max(None, halo_model.v_esc)
+    _ims = np.array([
+        quad(lambda v: 1 / v * halo_model.velocity_dist(v,None),
+            _v_min,
+             wr.v_max(None, halo_model.v_esc ))[0]
+        for _v_min in _v_mins])
+    
+    # Store interpolator in km/s rather than unit-dependent numbers
+    # so we don't have to recalculate them when nu.reset_units() is called
+    inverse_mean_speed_kms = interp1d(
+        _v_mins / (nu.km/nu.s),
+        _ims * (nu.km/nu.s),
+        # If we don't have 0 < v_min < v_max, we want to return 0
+        # so the integrand vanishes
+        fill_value=0, bounds_error=False)
+    return inverse_mean_speed_kms
 
-# Store interpolator in km/s rather than unit-dependent numbers
-# so we don't have to recalculate them when nu.reset_units() is called
-inverse_mean_speed_kms = interp1d(
-    _v_mins / (nu.km/nu.s),
-    _ims * (nu.km/nu.s),
-    # If we don't have 0 < v_min < v_max, we want to return 0
-    # so the integrand vanishes
-    fill_value=0, bounds_error=False)
+inverse_mean_speed_kms = velocity_integral_without_time()
 
 
 @export
 @wr.vectorize_first
 def rate_dme(erec, n, l, mw, sigma_dme,
-             t=None, **kwargs):
+             t=None, halo_model = None, **kwargs):
     """Return differential rate of dark matter electron scattering vs energy
     (i.e. dr/dE, not dr/dlogE)
     :param erec: Electronic recoil energy
@@ -116,7 +122,9 @@ def rate_dme(erec, n, l, mw, sigma_dme,
     momentum transfer q=0
     :param t: A J2000.0 timestamp.
     If not given, a conservative velocity distribution is used.
+    :param halo_model: class (default to standard halo model) containing velocity distribution
     """
+    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     shell = shell_str(n, l)
     eb = binding_es_for_dme(n, l)
 
@@ -144,7 +152,7 @@ def rate_dme(erec, n, l, mw, sigma_dme,
         # Note dblquad expects the function to be f(y, x), not f(x, y)...
         def diff_xsec(v, q):
             result = q * dme_ionization_ff(shell, erec, q)
-            result *= 1 / v * wr.observed_speed_dist(v, t)
+            result *= 1 / v * halo_model.velocity_dist(v, t)
             return result
 
         r = dblquad(
@@ -152,14 +160,14 @@ def rate_dme(erec, n, l, mw, sigma_dme,
             0,
             qmax,
             lambda q: v_min_dme(eb, erec, q, mw),
-            lambda _: wr.v_max(t),
+            lambda _: wr.v_max(t, halo_model.v_esc),
             **kwargs)[0]
 
     mu_e = mw * nu.me / (mw + nu.me)
 
     return (
         # Convert cross-section to rate, as usual
-        wr.rho_dm() / mw * (1 / wr.mn())
+        halo_model.rho_dm / mw * (1 / wr.mn())
         # d/lnE -> d/E
         * 1 / erec
         # Prefactors in cross-section
