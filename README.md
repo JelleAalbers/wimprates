@@ -39,3 +39,4 @@ Contributors
 -------------
  * Jelle Aalbers
  * Bart Pelssers
+ * Knut Dundas Mora
