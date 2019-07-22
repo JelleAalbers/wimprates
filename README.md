@@ -27,8 +27,8 @@ Features
 
 How to cite
 ------------
-- When citing wimpates, please list the DOI of the version you're using. Click the DOI badge above for more information.
-- Please cite the original sources for the different models you use:
+- J. Aalbers, B. Pelssers and K. Morå, wimprates: v0.3.0 (2019). http://doi.org/10.5281/zenodo.3345959
+- The original sources for models used in wimprates are:
   - **Spin-dependent scattering**: Klos, P. et al., [Phys.Rev. D88 (2013) no.8, 083516](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.88.083516), Erratum: [Phys.Rev. D89 (2014) no.2, 029901](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.89.029901). [[arXiv:1304.7684]](https://arxiv.org/abs/1304.7684)  
   - **Bremsstrahlung**: C. Kouvaris and J. Pradler, [Phys. Rev. Lett. 118, 031803 (2017)](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.118.031803). [arXiv:1607.01789](https://arxiv.org/abs/1607.01789)
   - **Migdal effect**: M. Ibe et al., [JHEP 1803 (2018) 194](https://link.springer.com/article/10.1007/JHEP03(2018)194). [arXiv:1707.07258](https://arxiv.org/abs/1707.07258) 
