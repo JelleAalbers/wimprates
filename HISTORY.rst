@@ -3,18 +3,21 @@
 History
 -------
 
+------------------
+0.3.0 (2019-07-22)
+------------------
+* Flexible halo model (#3)
+* DM form factor choice for DM-electron scattering
 
 ------------------
 0.2.2 (2019-03-27)
 ------------------
-* DM-electon scattering (under development)
-
+* DM-electron scattering
 
 ------------------
 0.2.1 (2019-03-23)
 ------------------
 * Fix package data specification
-
 
 ------------------
 0.2.0 (2019-03-23)
