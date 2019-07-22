@@ -10,26 +10,6 @@ import wimprates as wr
 export, __all__ = wr.exporter()
 
 
-@export
-def rho_dm():
-    """Local dark matter density"""
-    return 0.3 * nu.GeV/nu.c0**2 / nu.cm**3
-
-
-@export
-def v_0():
-    """Most common velocity of WIMPs in the halo,
-    relative to galactic center (asymptotic)
-    """
-    return 220 * nu.km/nu.s
-
-
-@export
-def v_esc():
-    """Galactic escape velocity"""
-    return 544 * nu.km/nu.s
-
-
 # J2000.0 epoch conversion (converts datetime to days since epoch)
 # Zero of this convention is defined as 12h Terrestrial time on 1 January 2000
 # This is similar to UTC or GMT with negligible error (~1 minute).
@@ -110,16 +90,19 @@ def v_earth(t=None):
 
 
 @export
-def v_max(t=None):
+def v_max(t=None, v_esc=None):
     """Return maximum observable dark matter velocity on Earth."""
+    v_esc = 544 * nu.km/nu.s if v_esc is None else v_esc  # default
+    # args do not change value when you do a
+    # reset_unit so this is necessary to avoid errors
     if t is None:
-        return v_esc() + v_earth(t)
+        return v_esc + v_earth(t)
     else:
-        return v_esc() + np.sum(earth_velocity(t) ** 2) ** 0.5
+        return v_esc + np.sum(earth_velocity(t) ** 2) ** 0.5
 
 
 @export
-def observed_speed_dist(v, t=None):
+def observed_speed_dist(v, t=None, v_0=None, v_esc=None):
     """Observed distribution of dark matter particle speeds on earth
     under the standard halo model.
 
@@ -129,33 +112,64 @@ def observed_speed_dist(v, t=None):
 
     Optionally supply J2000.0 time t to take into account Earth's orbital
     velocity.
+
+    Further inputs: scale velocity v_0 and escape velocity v_esc_value
     """
+    v_0 = 220 * nu.km/nu.s if v_0 is None else v_0
+    v_esc = 544 * nu.km/nu.s if v_esc is None else v_esc
     v_earth_t = v_earth(t)
 
     # Normalization constant, see Lewin&Smith appendix 1a
-    _w = v_esc()/v_0()
-    k = erf(_w) - 2/np.pi**0.5 * _w * np.exp(-_w**2)
+    _w = v_esc/v_0
+    k = erf(_w) - 2/np.pi**0.5 * _w * np.exp(-_w**2)  # unitless
 
     # Maximum cos(angle) for this velocity, otherwise v0
     xmax = np.minimum(1,
-                      (v_esc()**2 - v_earth_t**2 - v**2)
+                      (v_esc**2 - v_earth_t**2 - v**2)
                       / (2 * v_earth_t * v))
+    # unitless
 
-    y = (k * v / (np.pi**0.5 * v_0() * v_earth_t)
-         * (np.exp(-((v-v_earth_t)/v_0())**2)
-            - np.exp(-1/v_0()**2 * (v**2 + v_earth_t**2
-                                    + 2 * v * v_earth_t * xmax))))
+    y = (k * v / (np.pi**0.5 * v_0 * v_earth_t)
+         * (np.exp(-((v-v_earth_t)/v_0)**2)
+         - np.exp(-1/v_0**2 * (v**2 + v_earth_t**2
+                  + 2 * v * v_earth_t * xmax))))
+    # units / (velocity)
 
     # Zero if v > v_max
     try:
         len(v)
     except TypeError:
         # Scalar argument
-        if v > v_max(t):
+        if v > v_max(t, v_esc):
             return 0
         else:
             return y
     else:
         # Array argument
-        y[v > v_max(t)] = 0
+        y[v > v_max(t, v_esc)] = 0
         return y
+
+
+@export
+class StandardHaloModel:
+    """
+        class used to pass a halo model to the rate computation
+        must contain:
+        :param v_esc -- escape velocity
+        :function velocity_dist -- function taking v,t
+        giving normalised valocity distribution in earth rest-frame.
+        :param rho_dm -- density in mass/volume of dark matter at the Earth
+        The standard halo model also allows variation of v_0
+        :param v_0
+    """
+
+    def __init__(self, v_0=None, v_esc=None, rho_dm=None):
+        self.v_0 = 220 * nu.km/nu.s if v_0 is None else v_0
+        self.v_esc = 544 * nu.km/nu.s if v_esc is None else v_esc
+        self.rho_dm = 0.3 * nu.GeV/nu.c0**2 / nu.cm**3 if rho_dm is None else rho_dm
+
+    def velocity_dist(self, v, t):
+        # in units of per velocity,
+        # v is in units of velocity
+        return observed_speed_dist(v, t, self.v_0, self.v_esc)
+

@@ -177,8 +177,9 @@ def vmin_elastic(erec, mw):
 
 @export
 @wr.vectorize_first
-def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
-                 t=None, **kwargs):
+def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
+                 m_med=float('inf'), t=None,
+                 halo_model=None, **kwargs):
     """Differential rate per unit detector mass and recoil energy of
     elastic WIMP scattering
 
@@ -190,6 +191,8 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
     :param m_med: Mediator mass. If not given, assumed very heavy.
     :param t: A J2000.0 timestamp.
     If not given, conservative velocity distribution is used.
+    :param halo_model: class (default to standard halo model)
+    containing velocity distribution
     :param progress_bar: if True, show a progress bar during evaluation
     (if erec is an array)
 
@@ -198,16 +201,18 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
 
     Analytic expressions are known for this rate, but they are not used here.
     """
+    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     v_min = vmin_elastic(erec, mw)
 
-    if v_min >= wr.v_max(t):
+    if v_min >= wr.v_max(t, halo_model.v_esc):
         return 0
 
     def integrand(v):
-        return (sigma_erec(erec, v, mw, sigma_nucleon, interaction, m_med)
-                * v * wr.observed_speed_dist(v, t))
+        return (sigma_erec(erec, v, mw, sigma_nucleon,
+                           interaction, m_med) * v
+                * halo_model.velocity_dist(v, t))
 
-    return wr.rho_dm() / mw * (1 / mn()) * quad(
+    return halo_model.rho_dm / mw * (1 / mn()) * quad(
         integrand,
-        v_min, wr.v_max(t),
+        v_min, wr.v_max(t, halo_model.v_esc),
         **kwargs)[0]
