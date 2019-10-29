@@ -11,15 +11,19 @@ export, __all__ = wr.exporter()
 
 
 @export
-def an():
+def an(material='Xe'):
     """Standard atomic weight of target (averaged across all isotopes)"""
-    return 131.293
-
+    if material =='Xe':
+        return 131.293
+    if material =='Ar':
+        return 39.948 
+    if material =='Ge':
+        return 72.64
 
 @export
-def mn():
+def mn(material='Xe'):
     """Mass of nucleus (not nucleon!)"""
-    return an() * nu.amu
+    return an(material) * nu.amu
 
 
 spin_isotopes = [
@@ -47,9 +51,9 @@ def reduced_mass(m1, m2):
 
 
 @export
-def mu_nucleus(mw):
+def mu_nucleus(mw, material='Xe'):
     """DM-nucleus reduced mass"""
-    return reduced_mass(mw, mn())
+    return reduced_mass(mw, mn(material))
 
 
 @export
@@ -72,7 +76,7 @@ def spherical_bessel_j1(x):
 
 @export
 @wr.vectorize_first
-def helm_form_factor_squared(erec, anucl=None):
+def helm_form_factor_squared(erec, anucl=None, material='Xe'):
     """Return Helm form factor squared from Lewin & Smith
 
     Lifted from Andrew Brown's code with minor edits
@@ -80,8 +84,10 @@ def helm_form_factor_squared(erec, anucl=None):
     :param erec: nuclear recoil energy
     :param anucl: Nuclear mass number
     """
+    if material is not 'Xe':
+        raise NotImplementedError("@Joran add formfators")
     if anucl is None:
-        anucl = an()
+        anucl = an(material)
     en = erec / nu.keV
     if anucl <= 0:
         raise ValueError("Invalid value of A!")
@@ -113,7 +119,8 @@ def helm_form_factor_squared(erec, anucl=None):
 
 @export
 def sigma_erec(erec, v, mw, sigma_nucleon,
-               interaction='SI', m_med=float('inf')):
+               interaction='SI', m_med=float('inf'), 
+               material = 'Xe'):
     """Differential elastic WIMP-nucleus cross section
     (dependent on recoil energy and wimp-earth speed v)
 
@@ -127,13 +134,17 @@ def sigma_erec(erec, v, mw, sigma_nucleon,
     """
     if interaction == 'SI':
         sigma_nucleus = (sigma_nucleon
-                         * (mu_nucleus(mw) / reduced_mass(nu.amu, mw))**2
-                         * an()**2)
+                         * (mu_nucleus(mw, material) / reduced_mass(
+                            nu.amu, mw))**2
+                         * an(material)**2)
         result = (sigma_nucleus
-                  / e_max(mw, v)
-                  * helm_form_factor_squared(erec, anucl=an()))
+                  / e_max(mw, v, mn(material))
+                  * helm_form_factor_squared(erec, anucl=an(material)))
 
     elif interaction.startswith('SD'):
+        if material is not 'Xe':
+            raise not NotImplementedError("SI for %s-detector not available"%(
+                material))
         _, coupling, s_assumption = interaction.split('_')
 
         result = np.zeros_like(erec)
@@ -167,18 +178,18 @@ def mediator_factor(erec, m_med):
 
 
 @export
-def vmin_elastic(erec, mw):
+def vmin_elastic(erec, mw, material = 'Xe'):
     """Minimum WIMP velocity that can produce a recoil of energy erec
     :param erec: recoil energy
     :param mw: Wimp mass
     """
-    return np.sqrt(mn() * erec / (2 * mu_nucleus(mw)**2))
+    return np.sqrt(mn(material) * erec / (2 * mu_nucleus(mw, material)**2))
 
 
 @export
 @wr.vectorize_first
 def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
-                 m_med=float('inf'), t=None,
+                 m_med=float('inf'), t=None, material = 'Xe',
                  halo_model=None, **kwargs):
     """Differential rate per unit detector mass and recoil energy of
     elastic WIMP scattering
@@ -202,7 +213,7 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
     Analytic expressions are known for this rate, but they are not used here.
     """
     halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
-    v_min = vmin_elastic(erec, mw)
+    v_min = vmin_elastic(erec, mw, material)
 
     if v_min >= wr.v_max(t, halo_model.v_esc):
         return 0
