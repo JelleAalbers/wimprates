@@ -13,11 +13,11 @@ export, __all__ = wr.exporter()
 @export
 def an(material='Xe'):
     """Standard atomic weight of target (averaged across all isotopes)"""
-    if material =='Xe':
+    if material is 'Xe':
         return 131.293
-    if material =='Ar':
+    if material is 'Ar':
         return 39.948 
-    if material =='Ge':
+    if material is 'Ge':
         return 72.64
 
 @export
@@ -84,8 +84,6 @@ def helm_form_factor_squared(erec, anucl=None, material='Xe'):
     :param erec: nuclear recoil energy
     :param anucl: Nuclear mass number
     """
-    if material is not 'Xe':
-        raise NotImplementedError("@Joran add formfators")
     if anucl is None:
         anucl = an(material)
     en = erec / nu.keV
@@ -139,7 +137,9 @@ def sigma_erec(erec, v, mw, sigma_nucleon,
                          * an(material)**2)
         result = (sigma_nucleus
                   / e_max(mw, v, mn(material))
-                  * helm_form_factor_squared(erec, anucl=an(material)))
+                  * helm_form_factor_squared(erec,
+                                             anucl=an(material),
+                                             material=material))
 
     elif interaction.startswith('SD'):
         if material is not 'Xe':
@@ -189,7 +189,7 @@ def vmin_elastic(erec, mw, material = 'Xe'):
 @export
 @wr.vectorize_first
 def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
-                 m_med=float('inf'), t=None, material = 'Xe',
+                 m_med=float('inf'), t=None, material='Xe',
                  halo_model=None, **kwargs):
     """Differential rate per unit detector mass and recoil energy of
     elastic WIMP scattering
@@ -212,6 +212,7 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
 
     Analytic expressions are known for this rate, but they are not used here.
     """
+
     halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     v_min = vmin_elastic(erec, mw, material)
 
@@ -220,7 +221,7 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
 
     def integrand(v):
         return (sigma_erec(erec, v, mw, sigma_nucleon,
-                           interaction, m_med) * v
+                           interaction, m_med, material=material) * v
                 * halo_model.velocity_dist(v, t))
 
     return halo_model.rho_dm / mw * (1 / mn()) * quad(
