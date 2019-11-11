@@ -157,7 +157,7 @@ class StandardHaloModel:
         must contain:
         :param v_esc -- escape velocity
         :function velocity_dist -- function taking v,t
-        giving normalised valocity distribution in earth rest-frame.
+        giving normalised velocity distribution in earth rest-frame.
         :param rho_dm -- density in mass/volume of dark matter at the Earth
         The standard halo model also allows variation of v_0
         :param v_0
