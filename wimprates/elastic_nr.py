@@ -215,6 +215,8 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
     If not given, conservative velocity distribution is used.
     :param halo_model: class (default to standard halo model)
     containing velocity distribution
+    :param progress_bar: if True, show a progress bar during evaluation
+    (if erec is an array)
     :param material: name of the detection material (default is 'Xe')
 
     Further kwargs are passed to scipy.integrate.quad numeric integrator
