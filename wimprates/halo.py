@@ -26,11 +26,16 @@ def j2000(year=None, month=None, day_of_month=None, date=None):
     Returns the fractional number of days since J2000.0 epoch.
     """
     if date is not None:
-        year = date.year
-        month = date.month
-
-        start_of_month = pd.datetime(year, month, 1)
-        day_of_month = (date - start_of_month) / pd.Timedelta(1, 'D') + 1
+        zero = pd.to_datetime('2000-01-01T12:00')
+        nanoseconds_per_day = 1e9 * 3600 * 24
+        if isinstance(date, pd.datetime):
+            # pd.datetime refers to datetime.datetime
+            # make it into a pd.Timestamp
+            # Timestamp.value gives timestamp in ns
+            date = pd.to_datetime(date).value
+        elif isinstance(date, pd.Timestamp):
+            date = date.value
+        return (date - zero.value) / nanoseconds_per_day
 
     assert month > 0
     assert month < 13
