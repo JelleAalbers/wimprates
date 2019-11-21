@@ -16,3 +16,12 @@ def test_j2000():
 def test_j2000_datetime():
     date = pd.datetime(year=2009, month=1, day=31, hour=18)
     assert j2000(date=date) == 3318.25
+
+def test_j2000_ns_int():
+    date = pd.datetime(year=2009, month=1, day=31, hour=18)
+    assert j2000(date=pd.to_datetime(date).value) == 3318.25
+
+def test_j2000_ns_array():
+    date = pd.datetime(year=2009, month=1, day=31, hour=18)
+    dates = np.array([pd.to_datetime(date).value] * 3)
+    np.testing.assert_array_equal(j2000(date=dates), np.array([3318.25] * 3))
