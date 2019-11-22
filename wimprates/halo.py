@@ -29,7 +29,7 @@ def j2000(date):
     """
     zero = pd.to_datetime('2000-01-01T12:00')
     nanoseconds_per_day = 1e9 * 3600 * 24
-    if isinstance(date, pd.datetime):
+    if isinstance(date, datetime):
         # pd.datetime refers to datetime.datetime
         # make it into a pd.Timestamp
         # Timestamp.value gives timestamp in ns
@@ -40,7 +40,7 @@ def j2000(date):
 
 
 @export
-def j200_from_ymd(year, month, day_of_month):
+def j2000_from_ymd(year, month, day_of_month):
     """"Returns the fractional number of days since J2000.0 epoch.
     :param year: Year
     :param month: Month (January = 1)
@@ -73,7 +73,7 @@ def earth_velocity(t):
     e_2 = np.array([-0.0670, 0.4927, -0.8676])
     # t1 is the time of the vernal equinox, March 21. Does it matter what
     # year? Precession of equinox takes 25800 years so small effect.
-    t1 = j2000(2000, 3, 21)
+    t1 = j2000_from_ymd(2000, 3, 21)
     # Angular frequency
     omega = 2 * np.pi / 365.25
     phi = omega * (t - t1)
