@@ -1,5 +1,6 @@
 """Standard halo model: density, and velocity distribution
 """
+from datetime import datetime
 import numericalunits as nu
 import numpy as np
 import pandas as pd
@@ -18,25 +19,34 @@ export, __all__ = wr.exporter()
 #  j2000(2009, 1, 31.75) = 3318.25
 #  j2000(date=pd.to_datetime('2009-1-31 18:00:00') = 3318.25
 @export
-def j2000(year=None, month=None, day_of_month=None, date=None):
-    """Convert calendar date in year, month (starting at 1) and
-    the (possibly fractional) day of the month relative to midnight UT.
-    Either pass year, month and day_of_month or pass pandas datetime object
-    via date argument.
-    Returns the fractional number of days since J2000.0 epoch.
+def j2000(date):
+    """Returns the fractional number of days since J2000.0 epoch.
+    Either pass:
+      * An integer or array of integers (date argument), ns since unix epoch
+      * datetime.datetime object
+      * pd.Timestamp object
+    Day of month starts at 1.
     """
-    if date is not None:
-        zero = pd.to_datetime('2000-01-01T12:00')
-        nanoseconds_per_day = 1e9 * 3600 * 24
-        if isinstance(date, pd.datetime):
-            # pd.datetime refers to datetime.datetime
-            # make it into a pd.Timestamp
-            # Timestamp.value gives timestamp in ns
-            date = pd.to_datetime(date).value
-        elif isinstance(date, pd.Timestamp):
-            date = date.value
-        return (date - zero.value) / nanoseconds_per_day
+    zero = pd.to_datetime('2000-01-01T12:00')
+    nanoseconds_per_day = 1e9 * 3600 * 24
+    if isinstance(date, pd.datetime):
+        # pd.datetime refers to datetime.datetime
+        # make it into a pd.Timestamp
+        # Timestamp.value gives timestamp in ns
+        date = pd.to_datetime(date).value
+    elif isinstance(date, pd.Timestamp):
+        date = date.value
+    return (date - zero.value) / nanoseconds_per_day
 
+
+@export
+def j200_from_ymd(year, month, day_of_month):
+    """"Returns the fractional number of days since J2000.0 epoch.
+    :param year: Year
+    :param month: Month (January = 1)
+    :param day: Day of month (starting from 1), fractional days are
+    relative to midnight UT.
+    """
     assert month > 0
     assert month < 13
 
