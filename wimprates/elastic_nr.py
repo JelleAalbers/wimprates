@@ -7,19 +7,20 @@ from scipy.interpolate import interp1d
 from scipy.integrate import quad
 
 import wimprates as wr
+
 export, __all__ = wr.exporter()
+__all__ += ['ATOMIC_WEIGHT']
+
+ATOMIC_WEIGHT = dict(
+    Xe=131.293,
+    Ar=39.948,
+    Ge=72.64)
 
 
 @export
-def an():
-    """Standard atomic weight of target (averaged across all isotopes)"""
-    return 131.293
-
-
-@export
-def mn():
+def mn(material='Xe'):
     """Mass of nucleus (not nucleon!)"""
-    return an() * nu.amu
+    return ATOMIC_WEIGHT[material] * nu.amu
 
 
 spin_isotopes = [
@@ -47,9 +48,9 @@ def reduced_mass(m1, m2):
 
 
 @export
-def mu_nucleus(mw):
+def mu_nucleus(mw, material='Xe'):
     """DM-nucleus reduced mass"""
-    return reduced_mass(mw, mn())
+    return reduced_mass(mw, mn(material))
 
 
 @export
@@ -67,12 +68,12 @@ def e_max(mw, v, m_nucleus=None):
 @export
 def spherical_bessel_j1(x):
     """Spherical Bessel function j1 according to Wolfram Alpha"""
-    return np.sin(x)/x**2 + - np.cos(x)/x
+    return np.sin(x) / x**2 - np.cos(x) / x
 
 
 @export
 @wr.vectorize_first
-def helm_form_factor_squared(erec, anucl=None):
+def helm_form_factor_squared(erec, anucl=ATOMIC_WEIGHT['Xe']):
     """Return Helm form factor squared from Lewin & Smith
 
     Lifted from Andrew Brown's code with minor edits
@@ -80,8 +81,6 @@ def helm_form_factor_squared(erec, anucl=None):
     :param erec: nuclear recoil energy
     :param anucl: Nuclear mass number
     """
-    if anucl is None:
-        anucl = an()
     en = erec / nu.keV
     if anucl <= 0:
         raise ValueError("Invalid value of A!")
@@ -90,9 +89,9 @@ def helm_form_factor_squared(erec, anucl=None):
     #  and hardcoded constants...
 
     # First we get rn squared, in fm
-    mnucl = nu.amu/(nu.GeV/nu.c0**2)    # Mass of a nucleon, in GeV/c^2
+    mnucl = nu.amu / (nu.GeV / nu.c0**2)  # Mass of a nucleon, in GeV/c^2
     pi = np.pi
-    c = 1.23*anucl**(1/3)-0.60
+    c = 1.23 * anucl**(1/3) - 0.60
     a = 0.52
     s = 0.9
     rn_sq = c**2 + (7.0/3.0) * pi**2 * a**2 - 5 * s**2
@@ -102,18 +101,19 @@ def helm_form_factor_squared(erec, anucl=None):
 
     # E in units keV, rn in units fm, hbarc_kev units keV.fm
     # Formula is spherical bessel fn of Q=sqrt(E*2*Mn_keV)*rn
-    q = np.sqrt(en*2.*mass_kev)
-    qrn_over_hbarc = q*rn/hbarc_kevfm
+    q = np.sqrt(en * 2. * mass_kev)
+    qrn_over_hbarc = q * rn / hbarc_kevfm
     sph_bess = spherical_bessel_j1(qrn_over_hbarc)
-    retval = 9. * sph_bess * sph_bess / (qrn_over_hbarc*qrn_over_hbarc)
-    qs_over_hbarc = q*s/hbarc_kevfm
-    retval *= np.exp(-qs_over_hbarc*qs_over_hbarc)
+    retval = 9. * sph_bess * sph_bess / (qrn_over_hbarc * qrn_over_hbarc)
+    qs_over_hbarc = q * s / hbarc_kevfm
+    retval *= np.exp(-qs_over_hbarc * qs_over_hbarc)
     return retval
 
 
 @export
 def sigma_erec(erec, v, mw, sigma_nucleon,
-               interaction='SI', m_med=float('inf')):
+               interaction='SI', m_med=float('inf'),
+               material='Xe'):
     """Differential elastic WIMP-nucleus cross section
     (dependent on recoil energy and wimp-earth speed v)
 
@@ -124,16 +124,22 @@ def sigma_erec(erec, v, mw, sigma_nucleon,
     :param interaction: string describing DM-nucleus interaction.
     See rate_wimps for options.
     :param m_med: Mediator mass. If not given, assumed much heavier than mw.
+    :param material: name of the detection material (default is 'Xe')
     """
     if interaction == 'SI':
         sigma_nucleus = (sigma_nucleon
-                         * (mu_nucleus(mw) / reduced_mass(nu.amu, mw))**2
-                         * an()**2)
+                         * (mu_nucleus(mw, material) / reduced_mass(
+                            nu.amu, mw)) ** 2
+                         * ATOMIC_WEIGHT[material]**2)
         result = (sigma_nucleus
-                  / e_max(mw, v)
-                  * helm_form_factor_squared(erec, anucl=an()))
+                  / e_max(mw, v, mn(material))
+                  * helm_form_factor_squared(erec,
+                                             anucl=ATOMIC_WEIGHT[material]))
 
     elif interaction.startswith('SD'):
+        if material != 'Xe':
+            raise NotImplementedError("SD for %s-detectors not available" % (
+                material))
         _, coupling, s_assumption = interaction.split('_')
 
         result = np.zeros_like(erec)
@@ -163,22 +169,23 @@ def mediator_factor(erec, m_med):
     if m_med == float('inf'):
         return 1
     q = (2 * mn() * erec)**0.5
-    return m_med**4 / (m_med**2 + (q/nu.c0)**2)**2
+    return m_med**4 / (m_med**2 + (q/nu.c0)**2) ** 2
 
 
 @export
-def vmin_elastic(erec, mw):
+def vmin_elastic(erec, mw, material='Xe'):
     """Minimum WIMP velocity that can produce a recoil of energy erec
     :param erec: recoil energy
     :param mw: Wimp mass
+    :param material: name of the detection material (default is 'Xe')
     """
-    return np.sqrt(mn() * erec / (2 * mu_nucleus(mw)**2))
+    return np.sqrt(mn(material) * erec / (2 * mu_nucleus(mw, material) ** 2))
 
 
 @export
 @wr.vectorize_first
 def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
-                 m_med=float('inf'), t=None,
+                 m_med=float('inf'), t=None, material='Xe',
                  halo_model=None, **kwargs):
     """Differential rate per unit detector mass and recoil energy of
     elastic WIMP scattering
@@ -195,21 +202,23 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
     containing velocity distribution
     :param progress_bar: if True, show a progress bar during evaluation
     (if erec is an array)
+    :param material: name of the detection material (default is 'Xe')
 
     Further kwargs are passed to scipy.integrate.quad numeric integrator
     (e.g. error tolerance).
 
     Analytic expressions are known for this rate, but they are not used here.
     """
+
     halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
-    v_min = vmin_elastic(erec, mw)
+    v_min = vmin_elastic(erec, mw, material)
 
     if v_min >= wr.v_max(t, halo_model.v_esc):
         return 0
 
     def integrand(v):
         return (sigma_erec(erec, v, mw, sigma_nucleon,
-                           interaction, m_med) * v
+                           interaction, m_med, material=material) * v
                 * halo_model.velocity_dist(v, t))
 
     return halo_model.rho_dm / mw * (1 / mn()) * quad(
