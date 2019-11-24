@@ -9,36 +9,25 @@ from scipy.integrate import quad
 import wimprates as wr
 
 export, __all__ = wr.exporter()
+__all__ += ['ATOMIC_WEIGHT']
 
-
-@export
-def an(material='Xe'):
-    """
-    Standard atomic weight of target (averaged across all isotopes)
-    :param material: The target material
-    :return: atomic weight of specifeikd
-    """
-    if material is 'Xe':
-        return 131.293
-    if material is 'Ar':
-        return 39.948
-    if material is 'Ge':
-        return 72.64
-    else:
-        raise NotImplementedError("unknown material %s" % str(material))
+ATOMIC_WEIGHT = dict(
+    Xe=131.293,
+    Ar=39.948,
+    Ge=72.64)
 
 
 @export
 def mn(material='Xe'):
     """Mass of nucleus (not nucleon!)"""
-    return an(material) * nu.amu
+    return ATOMIC_WEIGHT[material] * nu.amu
 
 
 spin_isotopes = [
     # A, mass, J (nuclear spin), abundance
     # Data from Wikipedia (Jelle, 12 January 2018)
-    (129, 128.9047794, 1 / 2, 26.401e-2),
-    (131, 130.9050824, 3 / 2, 21.232e-2),
+    (129, 128.9047794, 1/2, 26.401e-2),
+    (131, 130.9050824, 3/2, 21.232e-2),
 ]
 
 # Load spin-dependent structure functions
@@ -73,28 +62,25 @@ def e_max(mw, v, m_nucleus=None):
     """
     if m_nucleus is None:
         m_nucleus = mn()
-    return 2 * reduced_mass(mw, m_nucleus) ** 2 * v ** 2 / m_nucleus
+    return 2 * reduced_mass(mw, m_nucleus)**2 * v**2 / m_nucleus
 
 
 @export
 def spherical_bessel_j1(x):
     """Spherical Bessel function j1 according to Wolfram Alpha"""
-    return np.sin(x) / x ** 2 + - np.cos(x) / x
+    return np.sin(x) / x**2 - np.cos(x) / x
 
 
 @export
 @wr.vectorize_first
-def helm_form_factor_squared(erec, anucl=None, material='Xe'):
+def helm_form_factor_squared(erec, anucl=ATOMIC_WEIGHT['Xe']):
     """Return Helm form factor squared from Lewin & Smith
 
     Lifted from Andrew Brown's code with minor edits
 
     :param erec: nuclear recoil energy
     :param anucl: Nuclear mass number
-    :param material: name of the detection material (default is 'Xe')
     """
-    if anucl is None:
-        anucl = an(material)
     en = erec / nu.keV
     if anucl <= 0:
         raise ValueError("Invalid value of A!")
@@ -103,12 +89,12 @@ def helm_form_factor_squared(erec, anucl=None, material='Xe'):
     #  and hardcoded constants...
 
     # First we get rn squared, in fm
-    mnucl = nu.amu / (nu.GeV / nu.c0 ** 2)  # Mass of a nucleon, in GeV/c^2
+    mnucl = nu.amu / (nu.GeV / nu.c0**2)  # Mass of a nucleon, in GeV/c^2
     pi = np.pi
-    c = 1.23 * anucl ** (1 / 3) - 0.60
+    c = 1.23 * anucl**(1/3) - 0.60
     a = 0.52
     s = 0.9
-    rn_sq = c ** 2 + (7.0 / 3.0) * pi ** 2 * a ** 2 - 5 * s ** 2
+    rn_sq = c**2 + (7.0/3.0) * pi**2 * a**2 - 5 * s**2
     rn = np.sqrt(rn_sq)  # units fm
     mass_kev = anucl * mnucl * 1e6
     hbarc_kevfm = 197327  # hbar * c in keV *fm (from Wolfram alpha)
@@ -144,16 +130,15 @@ def sigma_erec(erec, v, mw, sigma_nucleon,
         sigma_nucleus = (sigma_nucleon
                          * (mu_nucleus(mw, material) / reduced_mass(
                             nu.amu, mw)) ** 2
-                         * an(material) ** 2)
+                         * ATOMIC_WEIGHT[material]**2)
         result = (sigma_nucleus
                   / e_max(mw, v, mn(material))
                   * helm_form_factor_squared(erec,
-                                             anucl=an(material),
-                                             material=material))
+                                             anucl=ATOMIC_WEIGHT[material]))
 
     elif interaction.startswith('SD'):
-        if material is not 'Xe':
-            raise not NotImplementedError("SI for %s-detector not available" % (
+        if material != 'Xe':
+            raise NotImplementedError("SD for %s-detectors not available" % (
                 material))
         _, coupling, s_assumption = interaction.split('_')
 
@@ -166,8 +151,8 @@ def sigma_erec(erec, v, mw, sigma_nucleon,
             # then divide by it in the next line.
             # Obviously there's no point to this, so let's not.
             x = (sigma_nucleon * 4 * np.pi
-                 * reduced_mass(mw, mn_isotope) ** 2
-                 / (3 * reduced_mass(mw, nu.mp) ** 2 * (2 * J + 1)))
+                 * reduced_mass(mw, mn_isotope)**2
+                 / (3 * reduced_mass(mw, nu.mp)**2 * (2 * J + 1)))
             result += (abundance
                        * x / e_max(mw, v, mn_isotope)
                        * s(erec / nu.keV))
@@ -183,8 +168,8 @@ def sigma_erec(erec, v, mw, sigma_nucleon,
 def mediator_factor(erec, m_med):
     if m_med == float('inf'):
         return 1
-    q = (2 * mn() * erec) ** 0.5
-    return m_med ** 4 / (m_med ** 2 + (q / nu.c0) ** 2) ** 2
+    q = (2 * mn() * erec)**0.5
+    return m_med**4 / (m_med**2 + (q/nu.c0)**2) ** 2
 
 
 @export
