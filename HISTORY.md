@@ -4,6 +4,10 @@ History
 -------
 
 
+0.3.2 (2019-11-24)
+------------------
+* Fix technical release issue
+
 0.3.1 (2019-11-24)
 ------------------
 * Alternate materials for SI scattering (#4)
