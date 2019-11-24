@@ -4,6 +4,12 @@ History
 -------
 
 ------------------
+0.3.1 (2019-11-24)
+------------------
+* Alternate materials for SI scattering (#4)
+* Faster J200 timestamp conversion (#5)
+
+------------------
 0.3.0 (2019-07-22)
 ------------------
 * Flexible halo model (#3)
