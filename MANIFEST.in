@@ -1,6 +1,6 @@
-include HISTORY.rst
+include README.md
+include HISTORY.md
 include LICENSE
-include README.rst
 include requirements.txt
 
 recursive-include notebooks tests *
