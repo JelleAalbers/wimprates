@@ -1,14 +1,15 @@
 import setuptools
 
 readme = open('README.md').read()
-history = open('HISTORY.rst').read().replace('.. :changelog:', '')
+history = open('HISTORY.md').read().replace('.. :changelog:', '')
 requirements = open('requirements.txt').read().splitlines()
 
 setuptools.setup(
     name='wimprates',
-    version='0.3.0',
+    version='0.3.2',
     description='Differential rates of WIMP-nucleus scattering',
     long_description=readme + '\n\n' + history,
+    long_description_content_type='text/markdown',
     author='Jelle Aalbers',
     url='https://github.com/jelleaalbers/wimprates',
     license='MIT',

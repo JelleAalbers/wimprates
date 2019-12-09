@@ -1,5 +1,6 @@
 """Standard halo model: density, and velocity distribution
 """
+from datetime import datetime
 import numericalunits as nu
 import numpy as np
 import pandas as pd
@@ -18,20 +19,34 @@ export, __all__ = wr.exporter()
 #  j2000(2009, 1, 31.75) = 3318.25
 #  j2000(date=pd.to_datetime('2009-1-31 18:00:00') = 3318.25
 @export
-def j2000(year=None, month=None, day_of_month=None, date=None):
-    """Convert calendar date in year, month (starting at 1) and
-    the (possibly fractional) day of the month relative to midnight UT.
-    Either pass year, month and day_of_month or pass pandas datetime object
-    via date argument.
-    Returns the fractional number of days since J2000.0 epoch.
+def j2000(date):
+    """Returns the fractional number of days since J2000.0 epoch.
+    Either pass:
+      * An integer or array of integers (date argument), ns since unix epoch
+      * datetime.datetime object
+      * pd.Timestamp object
+    Day of month starts at 1.
     """
-    if date is not None:
-        year = date.year
-        month = date.month
+    zero = pd.to_datetime('2000-01-01T12:00')
+    nanoseconds_per_day = 1e9 * 3600 * 24
+    if isinstance(date, datetime):
+        # pd.datetime refers to datetime.datetime
+        # make it into a pd.Timestamp
+        # Timestamp.value gives timestamp in ns
+        date = pd.to_datetime(date).value
+    elif isinstance(date, pd.Timestamp):
+        date = date.value
+    return (date - zero.value) / nanoseconds_per_day
 
-        start_of_month = pd.datetime(year, month, 1)
-        day_of_month = (date - start_of_month) / pd.Timedelta(1, 'D') + 1
 
+@export
+def j2000_from_ymd(year, month, day_of_month):
+    """"Returns the fractional number of days since J2000.0 epoch.
+    :param year: Year
+    :param month: Month (January = 1)
+    :param day: Day of month (starting from 1), fractional days are
+    relative to midnight UT.
+    """
     assert month > 0
     assert month < 13
 
@@ -58,7 +73,7 @@ def earth_velocity(t):
     e_2 = np.array([-0.0670, 0.4927, -0.8676])
     # t1 is the time of the vernal equinox, March 21. Does it matter what
     # year? Precession of equinox takes 25800 years so small effect.
-    t1 = j2000(2000, 3, 21)
+    t1 = j2000_from_ymd(2000, 3, 21)
     # Angular frequency
     omega = 2 * np.pi / 365.25
     phi = omega * (t - t1)
