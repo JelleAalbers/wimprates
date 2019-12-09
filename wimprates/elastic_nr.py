@@ -161,14 +161,14 @@ def sigma_erec(erec, v, mw, sigma_nucleon,
         raise ValueError("Unsupported DM-nucleus interaction '%s'"
                          % interaction)
 
-    return result * mediator_factor(erec, m_med)
+    return result * mediator_factor(erec, m_med, material)
 
 
 @export
-def mediator_factor(erec, m_med):
+def mediator_factor(erec, m_med, material='Xe'):
     if m_med == float('inf'):
         return 1
-    q = (2 * mn() * erec)**0.5
+    q = (2 * mn(material) * erec)**0.5
     return m_med**4 / (m_med**2 + (q/nu.c0)**2) ** 2
 
 
@@ -221,7 +221,7 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
                            interaction, m_med, material=material) * v
                 * halo_model.velocity_dist(v, t))
 
-    return halo_model.rho_dm / mw * (1 / mn()) * quad(
+    return halo_model.rho_dm / mw * (1 / mn(material)) * quad(
         integrand,
         v_min, wr.v_max(t, halo_model.v_esc),
         **kwargs)[0]
