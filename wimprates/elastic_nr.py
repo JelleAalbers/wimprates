@@ -14,7 +14,9 @@ __all__ += ['ATOMIC_WEIGHT']
 ATOMIC_WEIGHT = dict(
     Xe=131.293,
     Ar=39.948,
-    Ge=72.64)
+    Ge=72.64,
+    Si=28.0855
+)
 
 
 @export

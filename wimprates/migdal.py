@@ -34,7 +34,11 @@ def read_migdal_transitions(material='Xe'):
         Ge=np.array([1.1e4,
                      1.4e3, 1.2e3,
                      1.7e2, 1.2e2, 3.5e1,
-                     1.5e1, 6.5e0])
+                     1.5e1, 6.5e0]),
+        # http://www.chembio.uoguelph.ca/educmat/atomdata/bindener/grp14num.htm
+        Si=np.array([1844.1,
+                     154.04, 103.71,
+                     13.46, 8.1517]),
     )
 
     binding_es_for_migdal_material = dict(zip(
@@ -46,7 +50,8 @@ def read_migdal_transitions(material='Xe'):
         # TODO double check that this works for 2 as well and does not refer to 1_**2** or so
         # TODO, where is an argon migdal paper?
         Ar=['2'],
-        Ge=['3'] #EDELWEIS
+        Ge=['3'],  # EDELWEIS
+        Si=['2'],
     )
 
     return df_migdal_material, binding_es_for_migdal_material, consider_shells[material]
