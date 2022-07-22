@@ -50,13 +50,13 @@ def reduced_mass(m1, m2):
 
 
 @export
-def mu_nucleus(mw, material='Xe'):
+def mu_nucleus(mw, material):
     """DM-nucleus reduced mass"""
     return reduced_mass(mw, mn(material))
 
 
 @export
-def e_max(mw, v, m_nucleus=None):
+def e_max(mw, v, m_nucleus):
     """Kinematic nuclear recoil energy maximum
     :param mw: Wimp mass
     :param m_nucleus: Nucleus mass. Defaults to standard atomic mass.
@@ -75,7 +75,7 @@ def spherical_bessel_j1(x):
 
 @export
 @wr.vectorize_first
-def helm_form_factor_squared(erec, anucl=ATOMIC_WEIGHT['Xe']):
+def helm_form_factor_squared(erec, anucl):
     """Return Helm form factor squared from Lewin & Smith
 
     Lifted from Andrew Brown's code with minor edits
@@ -167,7 +167,7 @@ def sigma_erec(erec, v, mw, sigma_nucleon,
 
 
 @export
-def mediator_factor(erec, m_med, material='Xe'):
+def mediator_factor(erec, m_med, material):
     if m_med == float('inf'):
         return 1
     q = (2 * mn(material) * erec)**0.5
@@ -175,7 +175,7 @@ def mediator_factor(erec, m_med, material='Xe'):
 
 
 @export
-def vmin_elastic(erec, mw, material='Xe'):
+def vmin_elastic(erec, mw, material):
     """Minimum WIMP velocity that can produce a recoil of energy erec
     :param erec: recoil energy
     :param mw: Wimp mass
