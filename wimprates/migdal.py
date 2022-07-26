@@ -7,10 +7,11 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.integrate import dblquad
 from functools import lru_cache
-
+from fnmatch import fnmatch
 import wimprates as wr
 export, __all__ = wr.exporter()
 # __all__ += ['BINDING_ENERGIES_MIGDAL']
+
 
 @lru_cache
 def read_migdal_transitions(material='Xe'):
@@ -46,17 +47,20 @@ def read_migdal_transitions(material='Xe'):
     binding_es_for_migdal_material = dict(zip(
         migdal_states_material, energy_nl[material]))
 
+    return df_migdal_material, binding_es_for_migdal_material,
+
+
+def _default_shells(material):
     consider_shells = dict(
-        Xe=['3', '4'],
+        Xe=['3*', '4*', '5_0'],
         # TODO, what are realistic values for Ge and Ar
         # TODO double check that this works for 2 as well and does not refer to 1_**2** or so
         # TODO, where is an argon migdal paper?
-        Ar=['2'],
-        Ge=['3'],  # EDELWEIS
-        Si=['2'],
+        Ar=['2*'],
+        Ge=['3*'],  # EDELWEIS
+        Si=['2*'],
     )
-
-    return df_migdal_material, binding_es_for_migdal_material, consider_shells[material]
+    return consider_shells[material]
 
 
 def vmin_migdal(w, erec, mw, material):
@@ -72,7 +76,8 @@ def vmin_migdal(w, erec, mw, material):
 @wr.vectorize_first
 def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
                 include_approx_nr=False, q_nr=0.15, material="Xe",
-                t=None, halo_model=None, **kwargs):
+                t=None, halo_model=None, consider_shells=None,
+                **kwargs):
     """Differential rate per unit detector mass and deposited ER energy of
     Migdal effect WIMP-nucleus scattering
 
@@ -94,6 +99,8 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
     If not given, conservative velocity distribution is used.
     :param halo_model: class (default to standard halo model)
     containing velocity distribution
+    :param consider_shells: consider the following atomic shells, are
+        fnmatched to the format from Ibe (i.e. 1_0, 1_1, etc).
     :param progress_bar: if True, show a progress bar during evaluation
     (if w is an array)
 
@@ -104,13 +111,15 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
     include_approx_nr = 1 if include_approx_nr else 0
 
     result = 0
-    df_migdal, binding_es_for_migdal, consider_shells = read_migdal_transitions(material=material)
+    df_migdal, binding_es_for_migdal = read_migdal_transitions(material=material)
+    if consider_shells is None:
+        consider_shells = _default_shells(material)
     for state, binding_e in binding_es_for_migdal.items():
         binding_e *= nu.eV
         # Only consider n=3 and n=4
         # n=5 is the valence band so unreliable in in liquid
         # n=1,2 contribute very little
-        if state[0] not in consider_shells:
+        if any(fnmatch(state, take) for take in consider_shells):
             continue
 
         # Lookup for differential probability (units of ev^-1)
