@@ -119,7 +119,7 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
         # Only consider n=3 and n=4
         # n=5 is the valence band so unreliable in in liquid
         # n=1,2 contribute very little
-        if any(fnmatch(state, take) for take in consider_shells):
+        if not any(fnmatch(state, take) for take in consider_shells):
             continue
 
         # Lookup for differential probability (units of ev^-1)
