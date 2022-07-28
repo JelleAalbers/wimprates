@@ -3,6 +3,21 @@
 History
 -------
 
+0.4.1 (2022-07-22)
+------------------
+* Allow different shells by @JoranAngevaare in https://github.com/JoranAngevaare/wimprates/pull/4
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/wimprates/compare/v0.4.0...v0.4.1
+
+0.4.0 (2022-07-22)
+------------------
+* Add different detection materials by @JoranAngevaare in https://github.com/JoranAngevaare/wimprates/pull/1
+* update fork by @JoranAngevaare in https://github.com/JoranAngevaare/wimprates/pull/2
+* Fix atom kwargs by @JoranAngevaare in https://github.com/JoranAngevaare/wimprates/pull/3
+
+
+**Full Changelog**: https://github.com/JoranAngevaare/wimprates/compare/v0.3.0...v0.4.0
 
 0.3.2 (2019-11-24)
 ------------------
