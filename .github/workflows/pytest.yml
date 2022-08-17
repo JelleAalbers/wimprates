@@ -36,6 +36,7 @@ jobs:
       - name: Install requirements for tests and latest strax
         run: |
           # Requirements for running the notebooks as a pytest
+          pip install cython
           pip install nbmake pytest-xdist
           # Several optional packages that are imported in the notebooks
           pip install git+https://github.com/XENON1T/laidbax
