@@ -1,4 +1,7 @@
-'''Convert .dat to .csv file
+'''
+Convert .dat to .csv file
+Please obtain the .dat file from the provided reference
+
 Example:
 python dat_to_cvs.py --input Xe.dat --output migdal_transition_Xe.csv
 '''
