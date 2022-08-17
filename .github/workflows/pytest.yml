@@ -45,14 +45,12 @@ jobs:
         if: matrix.test == 'pytest'
         run:
           pytest --cov wimprates -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
-#        coverage run --source=wimprates -m pytest -v --nbmake -n=auto notebooks/*.ipynb --durations 0
       - name: Coveralls
         env:
           NUMBA_DISABLE_JIT: 1
         if: matrix.test == 'coveralls'
         run:
           pytest --cov wimprates -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
-#        coverage run --source=wimprates -m pytest -v --nbmake -n=auto notebooks/*.ipynb --durations 0
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
