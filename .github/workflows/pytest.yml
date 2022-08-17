@@ -43,7 +43,7 @@ jobs:
           python setup.py develop
       - name: Test package
         if: matrix.test == 'pytest'
-        run: coverage run --source=pema -m pytest -vs --log-level=DEBUG --durations 0
+        run: coverage run --source=wimprates -m pytest -v --nbmake -n=auto notebooks/*.ipynb --durations 0
       - name: Coveralls
         env:
           NUMBA_DISABLE_JIT: 1
