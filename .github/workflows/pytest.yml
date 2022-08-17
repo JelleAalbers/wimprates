@@ -37,7 +37,7 @@ jobs:
         run: |
           # Requirements for running the notebooks as a pytest
           pip install cython
-          pip install nbmake pytest-xdist
+          pip install nbmake pytest-xdist pytest coverage coveralls
           # Several optional packages that are imported in the notebooks
           pip install git+https://github.com/XENON1T/laidbax
           python setup.py develop
