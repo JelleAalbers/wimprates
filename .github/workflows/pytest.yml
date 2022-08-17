@@ -36,7 +36,7 @@ jobs:
       - name: Install requirements for tests and latest strax
         run: |
           # Requirements for running the notebooks as a pytest
-          pip install cythonipython
+          pip install cython ipython
           pip install nbconvert==6.4.3 nbmake pytest-xdist pytest coverage coveralls pytest-cov pytest-notebook ipython_genutils
           # Several optional packages that are imported in the notebooks
           pip install git+https://github.com/XENON1T/laidbax
