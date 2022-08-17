@@ -16,9 +16,9 @@ parser.add_argument('--output', required=True, type=str, help="name output file"
 args = parser.parse_args()
 
 if not os.path.exists(args.input):
-    raise ValueError('file %s does not exist!'%(args.input))
+    raise ValueError('file %s does not exist!' % (args.input))
 if os.path.exists(args.output):
-    raise ValueError('file %s already exists!'%(args.output))
+    raise ValueError('file %s already exists!' % (args.output))
 assert args.output[-4:] == '.csv', "output file must be .csv"
 
 file = open(args.input, 'r')
@@ -31,7 +31,7 @@ for i, line in enumerate(file):
     if "Principal QN n" in line:
         header_i = i
     if i - header_i == 1:
-        header = line.replace(" ","")
+        header = line.replace(" ", "")
         header = header[0] + '_' + header.strip('\n')[-1]
         headers.append(header)
         result[header] = []
@@ -46,4 +46,4 @@ for header in headers + ['E']:
     df[header] = result[header]
 
 df.to_csv(args.output, index=False)
-print('Done writing %s'%args.output)
+print('Done writing %s' % args.output)

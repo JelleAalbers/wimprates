@@ -52,7 +52,7 @@ def read_migdal_transitions(material='Xe'):
 
 def _default_shells(material):
     consider_shells = dict(
-        Xe=['3*', '4*', '5_0'],
+        Xe=['3*', '4*'],
         # TODO, what are realistic values for Ge and Ar
         # TODO double check that this works for 2 as well and does not refer to 1_**2** or so
         # TODO, where is an argon migdal paper?
