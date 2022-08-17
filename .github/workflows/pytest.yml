@@ -42,6 +42,7 @@ jobs:
       - name: Test package
         if: matrix.test == 'pytest'
         run:
+          |
           pytest --cov wimprates -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
           coverage run --append --source=wimprates -m pytest -v
       - name: Coveralls
@@ -49,6 +50,7 @@ jobs:
           NUMBA_DISABLE_JIT: 1
         if: matrix.test == 'coveralls'
         run:
+          |
           pytest --cov wimprates -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
           coverage run --append --source=wimprates -m pytest -v
       - name: Coveralls
