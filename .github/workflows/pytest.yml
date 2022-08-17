@@ -1,0 +1,59 @@
+name: Test package
+
+on:
+  workflow_dispatch:
+  release:
+    types: [ created ]
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  update:
+    name: "${{ matrix.test }}_py${{ matrix.python-version }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: False
+      matrix:
+        python-version: [3.7, 3.8, 3.9, "3.10" ]
+        # Test coveralls (with numba disabled) and normal pytest
+        test: [ 'coveralls', 'pytest', ]
+        exclude:
+          - python-version: 3.7
+            test: pytest
+          - python-version: 3.9
+            test: pytest
+          - python-version: "3.10"
+            test: pytest
+    steps:
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Install requirements for tests and latest strax
+        run: |
+          # Requirements for running the notebooks as a pytest
+          pip install cython ipython
+          pip install nbconvert==6.4.3 nbmake pytest-xdist pytest coverage coveralls pytest-cov pytest-notebook ipython_genutils
+          # Several optional packages that are imported in the notebooks
+          pip install git+https://github.com/XENON1T/laidbax
+          python setup.py develop
+      - name: Test package
+        if: matrix.test == 'pytest'
+        run:
+          pytest --cov wimprates -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
+      - name: Coveralls
+        env:
+          NUMBA_DISABLE_JIT: 1
+        if: matrix.test == 'coveralls'
+        run:
+          pytest --cov wimprates -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
+      - name: Coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: coveralls --service=github
+      - name: goodbye
+        run: echo "tests done, bye bye"

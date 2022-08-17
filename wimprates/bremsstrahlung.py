@@ -21,7 +21,7 @@ f1 = to_itp('atomic_form_1')
 f2 = to_itp('atomic_form_2')
 
 
-def vmin_w(w, mw):
+def vmin_w(w, mw, material):
     """Minimum wimp velocity to emit a Bremsstrahlung photon w
 
     :param w: Bremsstrahlung photon energy
@@ -29,10 +29,10 @@ def vmin_w(w, mw):
 
     From Kouvaris/Pradler [arxiv:1607.01789v2], equation in text below eq. 10
     """
-    return (2 * w / wr.mu_nucleus(mw))**0.5
+    return (2 * w / wr.mu_nucleus(mw, material))**0.5
 
 
-def erec_bound(sign, w, v, mw):
+def erec_bound(sign, w, v, mw, material):
     """Bremsstrahlung scattering recoil energy kinematic limits
     From Kouvaris/Pradler [arxiv:1607.01789v2], eq. between 8 and 9,
     simplified by vmin (see above)
@@ -44,8 +44,8 @@ def erec_bound(sign, w, v, mw):
     """
     return (wr.mu_nucleus(mw)**2 * v**2 / wr.mn()
             * (1
-               - vmin_w(w, mw)**2 / (2 * v**2)
-               + sign * (1 - vmin_w(w, mw)**2 / v**2)**0.5))
+               - vmin_w(w, mw, material)**2 / (2 * v**2)
+               + sign * (1 - vmin_w(w, mw, material)**2 / v**2)**0.5))
 
 
 def sigma_w_erec(w, erec, v, mw, sigma_nucleon,
@@ -75,7 +75,9 @@ def sigma_w_erec(w, erec, v, mw, sigma_nucleon,
 
 
 def sigma_w(w, v, mw, sigma_nucleon,
-            interaction='SI', m_med=float('inf'), **kwargs):
+            material,
+            interaction='SI', m_med=float('inf'),
+            **kwargs):
     """Differential Bremsstrahlung WIMP-nucleus cross section
 
     :param w: Bremsstrahlung photon energy
@@ -94,8 +96,8 @@ def sigma_w(w, v, mw, sigma_nucleon,
         return sigma_w_erec(w, erec, v, mw, sigma_nucleon, interaction, m_med)
 
     return quad(integrand,
-                erec_bound(-1, w, v, mw),
-                erec_bound(+1, w, v, mw),
+                erec_bound(-1, w, v, mw, material=material),
+                erec_bound(+1, w, v, mw, material=material),
                 **kwargs)[0]
 
 
@@ -103,6 +105,7 @@ def sigma_w(w, v, mw, sigma_nucleon,
 @wr.vectorize_first
 def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI',
                         m_med=float('inf'), t=None,
+                        material='Xe',
                         halo_model=None, **kwargs):
     """Differential rate per unit detector mass and recoil energy of
     Bremsstrahlung elastic WIMP-nucleus scattering.
@@ -124,13 +127,16 @@ def rate_bremsstrahlung(w, mw, sigma_nucleon, interaction='SI',
     (e.g. error tolerance).
     """
     halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
-    vmin = vmin_w(w, mw)
+    vmin = vmin_w(w, mw, material)
 
     if vmin >= wr.v_max(t, halo_model.v_esc):
         return 0
 
     def integrand(v):
-        return (sigma_w(w, v, mw, sigma_nucleon, interaction, m_med) *
+        return (sigma_w(w, v, mw, sigma_nucleon,
+                        interaction=interaction,
+                        m_med=m_med,
+                        material=material) *
                 v * halo_model.velocity_dist(v, t))
 
     return halo_model.rho_dm / mw * (1 / wr.mn()) * quad(
