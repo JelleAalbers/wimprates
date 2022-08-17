@@ -36,18 +36,21 @@ jobs:
       - name: Install requirements for tests and latest strax
         run: |
           # Requirements for running the notebooks as a pytest
-          pip install nbmake pytest-xdist
+          pip install cython ipython
+          pip install nbconvert==6.4.3 nbmake pytest-xdist pytest coverage coveralls pytest-cov pytest-notebook ipython_genutils
           # Several optional packages that are imported in the notebooks
           pip install git+https://github.com/XENON1T/laidbax
           python setup.py develop
       - name: Test package
         if: matrix.test == 'pytest'
-        run: coverage run --source=pema -m pytest -vs --log-level=DEBUG --durations 0
+        run:
+          pytest --cov wimprates -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
       - name: Coveralls
         env:
           NUMBA_DISABLE_JIT: 1
         if: matrix.test == 'coveralls'
-        run: coverage run --source=wimprates -m pytest -v --nbmake -n=auto notebooks/*.ipynb --durations 0
+        run:
+          pytest --cov wimprates -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
