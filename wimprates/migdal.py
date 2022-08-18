@@ -10,12 +10,11 @@ from functools import lru_cache
 from fnmatch import fnmatch
 import wimprates as wr
 export, __all__ = wr.exporter()
-# __all__ += ['BINDING_ENERGIES_MIGDAL']
 
 
 @lru_cache
 def read_migdal_transitions(material='Xe'):
-    # Differential transition probabilities for Xe vs energy (eV)
+    # Differential transition probabilities for <material> vs energy (eV)
 
     df_migdal_material = pd.read_csv(wr.data_file('migdal/migdal_transition_%s.csv' %material))
 
@@ -23,7 +22,7 @@ def read_migdal_transitions(material='Xe'):
     migdal_states_material = df_migdal_material.columns.values.tolist()
     migdal_states_material.remove('E')
 
-    # Binding energies of the relevant Xenon electronic states
+    # Binding energies of the relevant electronic states
     # From table II of 1707.07258
     energy_nl = dict(
         Xe=np.array([3.5e4,
@@ -44,20 +43,22 @@ def read_migdal_transitions(material='Xe'):
                      13.46, 8.1517]),
     )
 
-    binding_es_for_migdal_material = dict(zip(
-        migdal_states_material, energy_nl[material]))
+    binding_es_for_migdal_material = dict(zip(migdal_states_material, energy_nl[material]))
 
     return df_migdal_material, binding_es_for_migdal_material,
 
 
 def _default_shells(material):
+
     consider_shells = dict(
+        # For Xe, only consider n=3 and n=4
+        # n=5 is the valence band so unreliable in liquid
+        # n=1,2 contribute very little
         Xe=['3*', '4*'],
-        # TODO, what are realistic values for Ge and Ar
-        # TODO double check that this works for 2 as well and does not refer to 1_**2** or so
-        # TODO, where is an argon migdal paper?
+        # TODO, what are realistic values for Ar?
         Ar=['2*'],
-        Ge=['3*'],  # EDELWEIS
+        # EDELWEIS
+        Ge=['3*'],
         Si=['2*'],
     )
     return consider_shells[material]
@@ -116,9 +117,6 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
         consider_shells = _default_shells(material)
     for state, binding_e in binding_es_for_migdal.items():
         binding_e *= nu.eV
-        # Only consider n=3 and n=4
-        # n=5 is the valence band so unreliable in in liquid
-        # n=1,2 contribute very little
         if not any(fnmatch(state, take) for take in consider_shells):
             continue
 
@@ -133,7 +131,6 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
             #                 + binding energy of state
             eelec = w - binding_e - include_approx_nr * erec * q_nr
             if eelec < 0:
-                # print(w , binding_e , include_approx_nr * erec * 0.15)
                 return 0
 
             return (
