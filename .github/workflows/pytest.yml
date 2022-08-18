@@ -16,12 +16,10 @@ jobs:
     strategy:
       fail-fast: False
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10" ]
+        python-version: [3.8, 3.9, "3.10" ]
         # Test coveralls (with numba disabled) and normal pytest
         test: [ 'coveralls', 'pytest', ]
         exclude:
-          - python-version: 3.7
-            test: pytest
           - python-version: 3.9
             test: pytest
           - python-version: "3.10"
@@ -44,13 +42,17 @@ jobs:
       - name: Test package
         if: matrix.test == 'pytest'
         run:
+          |
           pytest --cov wimprates -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
+          coverage run --append --source=wimprates -m pytest -v
       - name: Coveralls
         env:
           NUMBA_DISABLE_JIT: 1
         if: matrix.test == 'coveralls'
         run:
+          |
           pytest --cov wimprates -v --nbmake notebooks/*.ipynb --durations 0 --nb-coverage
+          coverage run --append --source=wimprates -m pytest -v
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

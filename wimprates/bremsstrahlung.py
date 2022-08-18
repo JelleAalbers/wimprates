@@ -42,7 +42,7 @@ def erec_bound(sign, w, v, mw, material):
     :param mw: WIMP mass
     :param v: WIMP speed (earth/detector frame)
     """
-    return (wr.mu_nucleus(mw)**2 * v**2 / wr.mn()
+    return (wr.mu_nucleus(mw, material)**2 * v**2 / wr.mn(material=material)
             * (1
                - vmin_w(w, mw, material)**2 / (2 * v**2)
                + sign * (1 - vmin_w(w, mw, material)**2 / v**2)**0.5))

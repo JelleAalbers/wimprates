@@ -3,7 +3,6 @@
 History
 -------
 
-
 0.3.2 (2019-11-24)
 ------------------
 * Fix technical release issue

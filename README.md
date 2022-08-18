@@ -5,8 +5,9 @@ Differential rates of WIMP-nucleus scattering in the standard halo model, for li
 
 `https://github.com/JelleAalbers/wimprates`
 
-[![Build Status](https://travis-ci.org/JelleAalbers/wimprates.svg?branch=master)](https://travis-ci.org/JelleAalbers/wimprates)
 [![DOI](https://zenodo.org/badge/117823144.svg)](https://zenodo.org/badge/latestdoi/117823144)
+[![Test package](https://github.com/JelleAalbers/wimprates/actions/workflows/pytest.yml/badge.svg?branch=master)](https://github.com/JelleAalbers/wimprates/actions/workflows/pytest.yml)
+[![Coverage Status](https://coveralls.io/repos/github/JelleAalbers/wimprates/badge.svg?branch=master)](https://coveralls.io/github/JelleAalbers/wimprates?branch=master)
 
 Installation and usage
 ----------------------
