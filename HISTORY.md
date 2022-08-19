@@ -3,6 +3,11 @@
 History
 -------
 
+0.4.0 (2022-08-14)
+------------------
+ * Fixes for alternate materials (#7)
+ * Update notebooks, continuous integration tests (#9)
+
 0.3.2 (2019-11-24)
 ------------------
 * Fix technical release issue
