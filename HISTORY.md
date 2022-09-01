@@ -3,6 +3,10 @@
 History
 -------
 
+0.4.1 (2022-09-01)
+------------------
+ * Restore python 3.7 compatibility (#13)
+
 0.4.0 (2022-08-14)
 ------------------
  * Fixes for alternate materials (#7)
