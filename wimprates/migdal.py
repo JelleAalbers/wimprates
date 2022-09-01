@@ -12,7 +12,7 @@ import wimprates as wr
 export, __all__ = wr.exporter()
 
 
-@lru_cache
+@lru_cache()
 def read_migdal_transitions(material='Xe'):
     # Differential transition probabilities for <material> vs energy (eV)
 

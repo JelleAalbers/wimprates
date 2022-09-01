@@ -16,14 +16,15 @@ jobs:
     strategy:
       fail-fast: False
       matrix:
-        python-version: [3.8, 3.9, "3.10" ]
         # Test coveralls (with numba disabled) and normal pytest
         test: [ 'coveralls', 'pytest', ]
+        # Only do coveralls once; pytest on all python versions
+        python-version: [3.8, 3.9, "3.10"]
         exclude:
           - python-version: 3.9
-            test: pytest
+            test: coveralls
           - python-version: "3.10"
-            test: pytest
+            test: coveralls
     steps:
       - name: Setup python
         uses: actions/setup-python@v4
@@ -31,7 +32,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Checkout repo
         uses: actions/checkout@v3
-      - name: Install requirements for tests and latest strax
+      - name: Install requirements for tests
         run: |
           # Requirements for running the notebooks as a pytest
           pip install cython ipython
