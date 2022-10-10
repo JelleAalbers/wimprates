@@ -5,6 +5,7 @@ import numericalunits as nu
 import numpy as np
 import pandas as pd
 from scipy.special import erf
+from functools import lru_cache
 
 
 import wimprates as wr
@@ -59,14 +60,18 @@ def j2000_from_ymd(year, month, day_of_month):
 
 
 @export
-def earth_velocity(t):
+def earth_velocity(t, v_0 = None):
     """Returns 3d velocity of earth, in the galactic rest frame,
     in galactic coordinates.
     :param t: J2000.0 timestamp
+    :param v_0: Local standard of rest velocity
 
     Values and formula from https://arxiv.org/abs/1209.3339
     Assumes earth circular orbit.
     """
+    if v_0 is None :
+        v_0 = 220 * nu.km/nu.s
+
     # e_1 and e_2 are the directions of earth's velocity at t1
     # and t1 + 0.25 year.
     e_1 = np.array([0.9931, 0.1170, -0.01032])
@@ -84,7 +89,7 @@ def earth_velocity(t):
     v_earth_sun = v_orbit * (e_1 * np.cos(phi) + e_2 * np.sin(phi))
 
     # Velocity of Local Standard of Rest
-    v_lsr = np.array([0, 220, 0]) * nu.km/nu.s
+    v_lsr = np.array([0, v_0/(nu.km/nu.s), 0]) * nu.km/nu.s
     # Solar peculiar velocity
     v_pec = np.array([11, 12, 7]) * nu.km/nu.s
 
@@ -92,28 +97,40 @@ def earth_velocity(t):
 
 
 @export
-def v_earth(t=None):
+@lru_cache(None)
+def v_earth(t=None, v_0=None, _n_days_average=365):
     """Return speed of earth relative to galactic rest frame
     :param t: J2000 timestamp or None
+    :param v_0: Local standard of rest velocity
+    :param _n_days_average: if a v_0 is specified and t is not, average over
+    these many datapoints to get the year-averaged v_earth
     """
-    if t is None:
+    if t is None and v_0 is None:
         # Velocity of earth/sun relative to gal. center
-        # (eccentric orbit, so not equal to v_0)
+        # (eccentric orbit, so not equal to v_0). Only valid
+        # for the default v_0
         return 232 * nu.km / nu.s
-    else:
-        return np.sum(earth_velocity(t) ** 2) ** 0.5
+    if t is None:
+        # Lazy way of averaging over one-year period, the @lru_cache should
+        # cache the result
+        return np.mean([v_earth(x, v_0 = 238 * nu.km/nu.s)
+                        for x in np.linspace(0, 365.25, _n_days_average)]
+                       )
+    return np.sum(earth_velocity(t, v_0=v_0) ** 2) ** 0.5
 
 
 @export
-def v_max(t=None, v_esc=None):
+def v_max(t=None, v_esc=None, v_0=None):
     """Return maximum observable dark matter velocity on Earth."""
-    v_esc = 544 * nu.km/nu.s if v_esc is None else v_esc  # default
+    # defaults
+    v_esc = 544 * nu.km/nu.s if v_esc is None else v_esc
+    v_0 = 220 * nu.km / nu.s if v_0 is None else v_0
     # args do not change value when you do a
     # reset_unit so this is necessary to avoid errors
     if t is None:
-        return v_esc + v_earth(t)
+        return v_esc + v_earth(t, v_0=v_0)
     else:
-        return v_esc + np.sum(earth_velocity(t) ** 2) ** 0.5
+        return v_esc + np.sum(earth_velocity(t, v_0=v_0) ** 2) ** 0.5
 
 
 @export
@@ -132,7 +149,7 @@ def observed_speed_dist(v, t=None, v_0=None, v_esc=None):
     """
     v_0 = 220 * nu.km/nu.s if v_0 is None else v_0
     v_esc = 544 * nu.km/nu.s if v_esc is None else v_esc
-    v_earth_t = v_earth(t)
+    v_earth_t = v_earth(t, v_0=v_0)
 
     # Normalization constant, see Lewin&Smith appendix 1a
     _w = v_esc/v_0
@@ -155,13 +172,13 @@ def observed_speed_dist(v, t=None, v_0=None, v_esc=None):
         len(v)
     except TypeError:
         # Scalar argument
-        if v > v_max(t, v_esc):
+        if v > v_max(t, v_esc, v_0=v_0):
             return 0
         else:
             return y
     else:
         # Array argument
-        y[v > v_max(t, v_esc)] = 0
+        y[v > v_max(t, v_esc, v_0=v_0)] = 0
         return y
 
 
@@ -175,7 +192,7 @@ class StandardHaloModel:
         giving normalised velocity distribution in earth rest-frame.
         :param rho_dm -- density in mass/volume of dark matter at the Earth
         The standard halo model also allows variation of v_0
-        :param v_0
+        :param v_0: Local standard of rest velocity
     """
 
     def __init__(self, v_0=None, v_esc=None, rho_dm=None):
@@ -186,5 +203,5 @@ class StandardHaloModel:
     def velocity_dist(self, v, t):
         # in units of per velocity,
         # v is in units of velocity
-        return observed_speed_dist(v, t, self.v_0, self.v_esc)
+        return observed_speed_dist(v, t, v_0=self.v_0, v_esc=self.v_esc)
 
