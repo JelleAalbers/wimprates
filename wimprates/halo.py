@@ -113,7 +113,7 @@ def v_earth(t=None, v_0=None, _n_days_average=365):
     if t is None:
         # Lazy way of averaging over one-year period, the @lru_cache should
         # cache the result
-        return np.mean([v_earth(x, v_0 = 238 * nu.km/nu.s)
+        return np.mean([v_earth(x, v_0 = v_0)
                         for x in np.linspace(0, 365.25, _n_days_average)]
                        )
     return np.sum(earth_velocity(t, v_0=v_0) ** 2) ** 0.5
