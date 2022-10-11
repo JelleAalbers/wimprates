@@ -61,3 +61,12 @@ class TestBenchmarks(unittest.TestCase):
         halo_model = wr.StandardHaloModel(rho_dm=0.3 * nu.GeV / nu.c0 ** 2 / nu.cm ** 3)
         self.assertAlmostEqual(wr.rate_wimp_std(1, halo_model=halo_model, **self.opts), ref)
 
+
+    def test_v_earth(self):
+        """Compare v_earth with and without specifying v_0"""
+        kms = nu.km/nu.s
+        v_0_default = 220 * kms
+        self.assertAlmostEqual(wr.v_earth(t=None, v_0=None)/kms,
+                               wr.v_earth(t=None, v_0=v_0_default)/kms,
+                               )
+
