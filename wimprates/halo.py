@@ -5,12 +5,21 @@ import numericalunits as nu
 import numpy as np
 import pandas as pd
 from scipy.special import erf
-from functools import lru_cache
+
 
 
 import wimprates as wr
 export, __all__ = wr.exporter()
 
+
+# See https://arxiv.org/abs/2105.00599 and references therein
+_HALO_DEFAULTS = dict(
+    rho_dm = 0.3, # GeV / c2 / cm3
+    v_esc = 544,  # km/s
+    v_orbit = 29.8,  # km/s
+    v_pec = (11.1, 12.2, 7.3),  # km/s
+    v_0 = 238,  # km/s
+)
 
 # J2000.0 epoch conversion (converts datetime to days since epoch)
 # Zero of this convention is defined as 12h Terrestrial time on 1 January 2000
@@ -70,7 +79,7 @@ def earth_velocity(t, v_0 = None):
     Assumes earth circular orbit.
     """
     if v_0 is None :
-        v_0 = 220 * nu.km/nu.s
+        v_0 = _HALO_DEFAULTS['v_0'] * nu.km/nu.s
 
     # e_1 and e_2 are the directions of earth's velocity at t1
     # and t1 + 0.25 year.
@@ -84,38 +93,37 @@ def earth_velocity(t, v_0 = None):
     phi = omega * (t - t1)
 
     # Mean orbital velocity of the Earth (Lewin & Smith appendix B)
-    v_orbit = 29.79 * nu.km / nu.s
+    v_orbit = _HALO_DEFAULTS['v_orbit'] * nu.km / nu.s
 
     v_earth_sun = v_orbit * (e_1 * np.cos(phi) + e_2 * np.sin(phi))
 
     # Velocity of Local Standard of Rest
-    v_lsr = np.array([0, v_0/(nu.km/nu.s), 0]) * nu.km/nu.s
+    v_lsr = np.array([0, v_0, 0])
     # Solar peculiar velocity
-    v_pec = np.array([11, 12, 7]) * nu.km/nu.s
+    v_pec = np.array(_HALO_DEFAULTS['v_pec']) * nu.km/nu.s
 
     return v_lsr + v_pec + v_earth_sun
 
 
 @export
-@lru_cache(None)
 def v_earth(t=None, v_0=None, _n_days_average=365):
     """Return speed of earth relative to galactic rest frame
+    Velocity of earth/sun relative to gal. center (eccentric orbit, so not
+    equal to v_0).
+
+
     :param t: J2000 timestamp or None
     :param v_0: Local standard of rest velocity
     :param _n_days_average: if a v_0 is specified and t is not, average over
     these many datapoints to get the year-averaged v_earth
     """
-    if t is None and v_0 is None:
-        # Velocity of earth/sun relative to gal. center
-        # (eccentric orbit, so not equal to v_0). Only valid
-        # for the default v_0
+    # Float compares can be tricky, use np.isclose instead
+    if t is None and np.isclose(v_0, 220*nu.km/nu.s, atol=0, rtol=1e-8):
+        # Use old convention from https://arxiv.org/pdf/hep-ph/0504010.pdf
         return 232 * nu.km / nu.s
     if t is None:
-        # Lazy way of averaging over one-year period, the @lru_cache should
-        # cache the result
-        return np.mean([v_earth(x, v_0 = v_0)
-                        for x in np.linspace(0, 365.25, _n_days_average)]
-                       )
+        # This day (Feb 29 2000) gives ~ the annual average speed
+        t=59.37
     return np.sum(earth_velocity(t, v_0=v_0) ** 2) ** 0.5
 
 
@@ -123,8 +131,8 @@ def v_earth(t=None, v_0=None, _n_days_average=365):
 def v_max(t=None, v_esc=None, v_0=None):
     """Return maximum observable dark matter velocity on Earth."""
     # defaults
-    v_esc = 544 * nu.km/nu.s if v_esc is None else v_esc
-    v_0 = 220 * nu.km / nu.s if v_0 is None else v_0
+    v_esc = _HALO_DEFAULTS['v_esc'] * nu.km/nu.s if v_esc is None else v_esc
+    v_0 = _HALO_DEFAULTS['v_0'] * nu.km / nu.s if v_0 is None else v_0
     # args do not change value when you do a
     # reset_unit so this is necessary to avoid errors
     if t is None:
@@ -147,8 +155,8 @@ def observed_speed_dist(v, t=None, v_0=None, v_esc=None):
 
     Further inputs: scale velocity v_0 and escape velocity v_esc_value
     """
-    v_0 = 220 * nu.km/nu.s if v_0 is None else v_0
-    v_esc = 544 * nu.km/nu.s if v_esc is None else v_esc
+    v_0 = _HALO_DEFAULTS['v_0'] * nu.km/nu.s if v_0 is None else v_0
+    v_esc = _HALO_DEFAULTS['v_esc'] * nu.km/nu.s if v_esc is None else v_esc
     v_earth_t = v_earth(t, v_0=v_0)
 
     # Normalization constant, see Lewin&Smith appendix 1a
@@ -196,9 +204,9 @@ class StandardHaloModel:
     """
 
     def __init__(self, v_0=None, v_esc=None, rho_dm=None):
-        self.v_0 = 220 * nu.km/nu.s if v_0 is None else v_0
-        self.v_esc = 544 * nu.km/nu.s if v_esc is None else v_esc
-        self.rho_dm = 0.3 * nu.GeV/nu.c0**2 / nu.cm**3 if rho_dm is None else rho_dm
+        self.v_0 = _HALO_DEFAULTS['v_0'] * nu.km/nu.s if v_0 is None else v_0
+        self.v_esc = _HALO_DEFAULTS['v_esc'] * nu.km/nu.s if v_esc is None else v_esc
+        self.rho_dm = _HALO_DEFAULTS['rho_dm'] * nu.GeV/nu.c0**2 / nu.cm**3 if rho_dm is None else rho_dm
 
     def velocity_dist(self, v, t):
         # in units of per velocity,
