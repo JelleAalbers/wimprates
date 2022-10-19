@@ -118,12 +118,12 @@ def v_earth(t=None, v_0=None, _n_days_average=365):
     these many datapoints to get the year-averaged v_earth
     """
     # Float compares can be tricky, use np.isclose instead
-    if t is None and np.isclose(v_0, 220*nu.km/nu.s, atol=0, rtol=1e-8):
+    if t is None and v_0 is not None and np.isclose(v_0, 220*nu.km/nu.s, atol=0, rtol=1e-8):
         # Use old convention from https://arxiv.org/pdf/hep-ph/0504010.pdf
         return 232 * nu.km / nu.s
     if t is None:
         # This day (Feb 29 2000) gives ~ the annual average speed
-        t=59.37
+        t = 59.37
     return np.sum(earth_velocity(t, v_0=v_0) ** 2) ** 0.5
 
 
