@@ -106,16 +106,13 @@ def earth_velocity(t, v_0 = None):
 
 
 @export
-def v_earth(t=None, v_0=None, _n_days_average=365):
+def v_earth(t=None, v_0=None):
     """Return speed of earth relative to galactic rest frame
     Velocity of earth/sun relative to gal. center (eccentric orbit, so not
     equal to v_0).
 
-
     :param t: J2000 timestamp or None
     :param v_0: Local standard of rest velocity
-    :param _n_days_average: if a v_0 is specified and t is not, average over
-    these many datapoints to get the year-averaged v_earth
     """
     if t is None:
         # This day (Feb 29 2000) gives ~ the annual average speed
