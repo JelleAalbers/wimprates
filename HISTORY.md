@@ -5,8 +5,10 @@ History
 
 0.5.0 (2023-02-13)
 ------------------
- * Change default v0 from 220 to 238 km/s to match [current conventions](https://arxiv.org/abs/2105.00599) (#14)
- * If no time is provided, spectra are calculated at a reference time (#14).
+ * Change default v_0 and v_pec to match [current conventions](https://arxiv.org/abs/2105.00599) (#14)
+ * If no time is provided, spectra are now calculated at a reference time (#14)
+ * Fix bug where user-specified halo models would not override v_0 (#14)
+ * Fix tests for numpy 1.24 (#15)
 
 0.4.1 (2022-09-01)
 ------------------
