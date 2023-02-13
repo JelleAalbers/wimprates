@@ -1,8 +1,7 @@
 __version__ = '0.4.1'
 
 from packaging import version
-if version.parse('0.4.1') < version.parse(__version__) < version.parse('0.6.0'):
-    # Remove this warning at some point
+if version.parse(__version__) < version.parse('0.6.0'):
     import warnings
     warnings.warn(
         'Default WIMP parameters are changed in accordance with '
