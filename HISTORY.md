@@ -3,6 +3,11 @@
 History
 -------
 
+0.5.0 (2023-02-13)
+------------------
+ * Change default v0 from 220 to 238 km/s to match [current conventions](https://arxiv.org/abs/2105.00599) (#14)
+ * If no time is provided, spectra are calculated at a reference time (#14).
+
 0.4.1 (2022-09-01)
 ------------------
  * Restore python 3.7 compatibility (#13)
