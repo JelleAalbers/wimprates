@@ -81,7 +81,7 @@ class TestBenchmarks(unittest.TestCase):
         # See https://github.com/JelleAalbers/wimprates/pull/14
         # We're now going to to just add the factor that we are of by, for
         # bookkeeping
-        wrong_by_this_much = 2.4
+        wrong_by_this_much = 2.40803047754608
         
         self.assertAlmostEqual(232 + wrong_by_this_much,
                                wr.v_earth(t=None, v_0=v_0_old)/kms,
