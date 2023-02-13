@@ -21,9 +21,9 @@ jobs:
         # Only do coveralls once; pytest on all python versions
         python-version: [3.8, 3.9, "3.10"]
         exclude:
-          - python-version: 3.9
+          - python-version: 3.8
             test: coveralls
-          - python-version: "3.10"
+          - python-version: 3.9
             test: coveralls
     steps:
       - name: Setup python
@@ -36,8 +36,7 @@ jobs:
         run: |
           # Requirements for running the notebooks as a pytest
           pip install cython ipython
-          pip install "numpy<1.23"
-          pip install nbconvert==6.4.3 nbmake pytest-xdist pytest coverage coveralls pytest-cov pytest-notebook ipython_genutils
+          pip install nbconvert nbmake pytest-xdist pytest coverage coveralls pytest-cov pytest-notebook ipython_genutils
           # Several optional packages that are imported in the notebooks
           pip install git+https://github.com/XENON1T/laidbax
           python setup.py develop
