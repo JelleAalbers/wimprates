@@ -201,7 +201,7 @@ def rate_srdm(erec, n, l, mw, sigma_dme,
     :param t: A J2000.0 timestamp.
     :param srdm_model: class (default to standard halo model) containing velocity distribution
     """
-    srdm_model = wr.StandardHaloModel() if srdm_model is None else srdm_model
+    srdm_model = wr.SolarReflectedDMModel() if srdm_model is None else srdm_model
     shell = shell_str(n, l)
     eb = binding_es_for_dme(n, l)
 
@@ -231,8 +231,8 @@ def rate_srdm(erec, n, l, mw, sigma_dme,
     # DM-e reduced mass
     mu_e = mw * nu.me / (mw + nu.me)
 
-    # Number of target atoms ()
-    n_target = 1.
+    # Number of target atoms in 1 kg of Xenon
+    n_target = 4.57e24
 
     return (
         # Convert cross-section to rate
