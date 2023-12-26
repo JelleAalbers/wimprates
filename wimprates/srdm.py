@@ -150,6 +150,7 @@ class SolarReflectedDMModel:
     """
 
     def __init__(self, v_0=None, v_esc=None, rho_dm=None):
+        # CHANGE THESE TO VALUES USED IN DAMASCUS-SUN!
         self.v_0 = _HALO_DEFAULTS['v_0'] * nu.km/nu.s if v_0 is None else v_0
         self.v_esc = _HALO_DEFAULTS['v_esc'] * nu.km/nu.s if v_esc is None else v_esc
         self.rho_dm = _HALO_DEFAULTS['rho_dm'] * nu.GeV/nu.c0**2 / nu.cm**3 if rho_dm is None else rho_dm
@@ -157,5 +158,6 @@ class SolarReflectedDMModel:
     def differential_flux(self, v, t):
         # in units of per velocity,
         # v is in units of velocity
+        # Differential Flux from DAMASCUS-Sun
         return observed_speed_dist(v, t, v_0=self.v_0, v_esc=self.v_esc)
 

@@ -217,7 +217,8 @@ def rate_srdm(erec, n, l, mw, sigma_dme,
     # Note dblquad expects the function to be f(y, x), not f(x, y)...
     def diff_xsec(v, q):
         result = dme_ionization_ff(shell, erec, q) * f_dm(q)**2
-        result *= srdm_model.differential_flux(v, t)/(v**2)
+        result *= q/(v**2)
+        result *= srdm_model.differential_flux(v, t)
         return result
 
     r = dblquad(
@@ -232,11 +233,11 @@ def rate_srdm(erec, n, l, mw, sigma_dme,
     mu_e = mw * nu.me / (mw + nu.me)
 
     # Number of target atoms in 1 kg of Xenon
-    n_target = 4.57e24
+    n_target = 1/wr.mn()
 
     return (
         # Convert cross-section to rate
-        n_target * sigma_dme / (16 * mu_e ** 2)
+        n_target * sigma_dme / (8. * mu_e ** 2)
         # d/lnE -> d/E
         * 1 / erec
         # Prefactors in cross-section
