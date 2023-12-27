@@ -122,6 +122,7 @@ def v_earth(t=None, v_0=None):
 
 @export
 def v_max(t=None, v_esc=None, v_0=None):
+    print('hi from halo')
     """Return maximum observable dark matter velocity on Earth."""
     # defaults
     v_esc = _HALO_DEFAULTS['v_esc'] * nu.km/nu.s if v_esc is None else v_esc

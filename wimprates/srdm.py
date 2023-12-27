@@ -72,70 +72,6 @@ def v_earth(t=None, v_0=None):
         t = 59.37
     return np.sum(earth_velocity(t, v_0=v_0) ** 2) ** 0.5
 
-
-@export
-def v_max(t=None, v_esc=None, v_0=None):
-    """Return maximum observable dark matter velocity on Earth."""
-    # defaults
-    v_esc = _HALO_DEFAULTS['v_esc'] * nu.km/nu.s if v_esc is None else v_esc
-    v_0 = _HALO_DEFAULTS['v_0'] * nu.km / nu.s if v_0 is None else v_0
-    # args do not change value when you do a
-    # reset_unit so this is necessary to avoid errors
-    if t is None:
-        return v_esc + v_earth(t, v_0=v_0)
-    else:
-        return v_esc + np.sum(earth_velocity(t, v_0=v_0) ** 2) ** 0.5
-
-
-@export
-def observed_speed_dist(v, t=None, v_0=None, v_esc=None):
-    """Observed distribution of dark matter particle speeds on earth
-    under the standard halo model.
-
-    See my thesis for derivation ;-)
-    If you find a paper where this formula is written out explicitly, please
-    let me know. I spent a lot of time looking for this in vain.
-
-    Optionally supply J2000.0 time t to take into account Earth's orbital
-    velocity.
-
-    Further inputs: scale velocity v_0 and escape velocity v_esc_value
-    """
-    v_0 = _HALO_DEFAULTS['v_0'] * nu.km/nu.s if v_0 is None else v_0
-    v_esc = _HALO_DEFAULTS['v_esc'] * nu.km/nu.s if v_esc is None else v_esc
-    v_earth_t = v_earth(t, v_0=v_0)
-
-    # Normalization constant, see Lewin&Smith appendix 1a
-    _w = v_esc/v_0
-    k = erf(_w) - 2/np.pi**0.5 * _w * np.exp(-_w**2)  # unitless
-
-    # Maximum cos(angle) for this velocity, otherwise v0
-    xmax = np.minimum(1,
-                      (v_esc**2 - v_earth_t**2 - v**2)
-                      / (2 * v_earth_t * v))
-    # unitless
-
-    y = (k * v / (np.pi**0.5 * v_0 * v_earth_t)
-         * (np.exp(-((v-v_earth_t)/v_0)**2)
-         - np.exp(-1/v_0**2 * (v**2 + v_earth_t**2
-                  + 2 * v * v_earth_t * xmax))))
-    # units / (velocity)
-
-    # Zero if v > v_max
-    try:
-        len(v)
-    except TypeError:
-        # Scalar argument
-        if v > v_max(t, v_esc, v_0=v_0):
-            return 0
-        else:
-            return y
-    else:
-        # Array argument
-        y[v > v_max(t, v_esc, v_0=v_0)] = 0
-        return y
-
-
 @export
 class SolarReflectedDMModel:
     """
@@ -155,9 +91,80 @@ class SolarReflectedDMModel:
         self.v_esc = _HALO_DEFAULTS['v_esc'] * nu.km/nu.s if v_esc is None else v_esc
         self.rho_dm = _HALO_DEFAULTS['rho_dm'] * nu.GeV/nu.c0**2 / nu.cm**3 if rho_dm is None else rho_dm
 
-    def differential_flux(self, v, t):
+
+    def observed_speed_dist_srdm(self, v):
+        print('start: observed_speed_dist_srdm')
+        """Observed distribution of dark matter particle speeds on earth
+        under the standard halo model.
+
+        See my thesis for derivation ;-)
+        If you find a paper where this formula is written out explicitly, please
+        let me know. I spent a lot of time looking for this in vain.
+
+        Optionally supply J2000.0 time t to take into account Earth's orbital
+        velocity.
+
+        Further inputs: scale velocity v_0 and escape velocity v_esc_value
+        """
+        v_0 = _HALO_DEFAULTS['v_0'] * nu.km/nu.s
+        v_esc = _HALO_DEFAULTS['v_esc'] * nu.km/nu.s
+        t = None
+        v_earth_t = v_earth(t, v_0=v_0)
+
+        # Normalization constant, see Lewin&Smith appendix 1a
+        _w = v_esc/v_0
+        k = erf(_w) - 2/np.pi**0.5 * _w * np.exp(-_w**2)  # unitless
+
+        # Maximum cos(angle) for this velocity, otherwise v0
+        xmax = np.minimum(1,
+                          (v_esc**2 - v_earth_t**2 - v**2)
+                          / (2 * v_earth_t * v))
+        # unitless
+
+        y = (k * v / (np.pi**0.5 * v_0 * v_earth_t)
+             * (np.exp(-((v-v_earth_t)/v_0)**2)
+             - np.exp(-1/v_0**2 * (v**2 + v_earth_t**2
+                      + 2 * v * v_earth_t * xmax))))
+        # units / (velocity)
+
+        # Zero if v > v_max
+        try:
+            len(v)
+        except TypeError:
+            # Scalar argument
+            if v > self.v_max():
+                print('end0 0000000')
+                return 0
+            else:
+                print('end1 1111111')
+                return y
+        else:
+            # Array argument
+            y[v > self.v_max()] = 0
+            print('end2 2222222')
+            return y
+
+    def v_max(self):
+        print('hi from srdm2 v_max')
+        """Return maximum observable dark matter velocity on Earth."""
+        # defaults
+        v_esc = _HALO_DEFAULTS['v_esc'] * nu.km/nu.s
+        v_0 = _HALO_DEFAULTS['v_0'] * nu.km / nu.s
+        # args do not change value when you do a
+        # reset_unit so this is necessary to avoid errors
+
+        # so 'just' return the max v that differential flux is defined for
+        # remember to express it in terms of nu.km/nu.s cause seems like 
+        # some numericalunit errors will occurr if you don't do that.
+
+        # hardcoding it to 30_000 km/s based on right plot in fig3 of
+        # 2102.12483v2
+        this_v_max = 30_000
+        return this_v_max * nu.km/nu.s
+
+    def differential_flux(self, v):
         # in units of per velocity,
         # v is in units of velocity
         # Differential Flux from DAMASCUS-Sun
-        return observed_speed_dist(v, t, v_0=self.v_0, v_esc=self.v_esc)
+        return self.observed_speed_dist_srdm(v)
 

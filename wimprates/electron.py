@@ -5,6 +5,8 @@ import numpy as np
 from scipy.interpolate import RegularGridInterpolator, interp1d
 from scipy.integrate import quad, dblquad
 
+
+import pdb
 import wimprates as wr
 export, __all__ = wr.exporter()
 __all__ += ['dme_shells', 'l_to_letter', 'l_to_number']
@@ -189,7 +191,7 @@ def rate_dme(erec, n, l, mw, sigma_dme,
 @export
 @wr.vectorize_first
 def rate_srdm(erec, n, l, mw, sigma_dme,
-             t=None, srdm_model=None, **kwargs):
+             srdm_model=None, **kwargs):
     """Return differential rate of dark matter electron scattering vs energy
     (i.e. dr/dE, not dr/dlogE)
     :param erec: Electronic recoil energy
@@ -198,7 +200,6 @@ def rate_srdm(erec, n, l, mw, sigma_dme,
     :param mw: DM mass in kg (?!)
     :param sigma_dme: DM-free electron scattering cross-section at fixed
     momentum transfer q=0 in cm2
-    :param t: A J2000.0 timestamp.
     :param srdm_model: class (default to standard halo model) containing velocity distribution
     """
     srdm_model = wr.SolarReflectedDMModel() if srdm_model is None else srdm_model
@@ -218,21 +219,22 @@ def rate_srdm(erec, n, l, mw, sigma_dme,
     def diff_xsec(v, q):
         result = dme_ionization_ff(shell, erec, q) * f_dm(q)**2
         result *= q/(v**2)
-        result *= srdm_model.differential_flux(v, t)
+        result *= srdm_model.differential_flux(v)
         return result
 
     r = dblquad(
         diff_xsec,
         0,
         qmax,
-        lambda q: v_min_dme(eb, erec, q, mw),
-        lambda _: wr.v_max(t, srdm_model.v_esc),
+        lambda q: v_min_dme(eb, erec, q, mw), # v min for particular q
+        lambda _: srdm_model.v_max(), # v max for particular q
         **kwargs)[0]
 
     # DM-e reduced mass
     mu_e = mw * nu.me / (mw + nu.me)
 
     # Number of target atoms in 1 kg of Xenon
+    # potentially some units missing from this guy
     n_target = 1/wr.mn()
 
     return (
