@@ -202,7 +202,7 @@ def rate_srdm(erec, n, l, mw, sigma_dme,
     momentum transfer q=0 in cm2
     :param srdm_model: class (default to standard halo model) containing velocity distribution
     """
-    srdm_model = wr.SolarReflectedDMModel() if srdm_model is None else srdm_model
+    srdm_model = wr.SolarReflectedDMModel(mw, sigma_dme) if srdm_model is None else srdm_model
     shell = shell_str(n, l)
     eb = binding_es_for_dme(n, l)
 
@@ -219,6 +219,16 @@ def rate_srdm(erec, n, l, mw, sigma_dme,
     def diff_xsec(v, q):
         result = dme_ionization_ff(shell, erec, q) * f_dm(q)**2
         result *= q/(v**2)
+
+        '''
+        if v>srdm_model.v_min:
+            print(f'how come smaller?, q={q}, v={v}')
+        elif v<srdm_model.v_max:
+            print(f'how come larger?, q={q}, v={v}')
+        else:
+            print(f'q={q:.3e}, v={v:.3e} good')
+        '''
+
         result *= srdm_model.differential_flux(v)
         return result
 
@@ -226,8 +236,8 @@ def rate_srdm(erec, n, l, mw, sigma_dme,
         diff_xsec,
         0,
         qmax,
-        lambda q: v_min_dme(eb, erec, q, mw), # v min for particular q
-        lambda _: srdm_model.v_max(), # v max for particular q
+        lambda q: max(v_min_dme(eb, erec, q, mw), srdm_model.v_min), # v min for particular q
+        lambda _: srdm_model.v_max, # v max for particular q
         **kwargs)[0]
 
     # DM-e reduced mass
