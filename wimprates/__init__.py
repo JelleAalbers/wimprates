@@ -9,6 +9,7 @@ if version.parse(__version__) < version.parse('0.6.0'):
 
 from .utils import *
 from .halo import *
+from .srdm import *
 from .elastic_nr import *
 from .bremsstrahlung import *
 from .migdal import *

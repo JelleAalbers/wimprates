@@ -5,6 +5,8 @@ import numpy as np
 from scipy.interpolate import RegularGridInterpolator, interp1d
 from scipy.integrate import quad, dblquad
 
+
+import pdb
 import wimprates as wr
 export, __all__ = wr.exporter()
 __all__ += ['dme_shells', 'l_to_letter', 'l_to_number']
@@ -183,4 +185,72 @@ def rate_dme(erec, n, l, mw, sigma_dme,
         * 1 / erec
         # Prefactors in cross-section
         * sigma_dme / (8 * mu_e ** 2)
+        * r)
+
+
+@export
+@wr.vectorize_first
+def rate_srdm(erec, n, l, mw, sigma_dme,
+             srdm_model=None, **kwargs):
+    """Return differential rate of dark matter electron scattering vs energy
+    (i.e. dr/dE, not dr/dlogE)
+    :param erec: Electronic recoil energy
+    :param n: Principal quantum numbers of the shell that is hit
+    :param l: Angular momentum quantum number of the shell that is hit
+    :param mw: DM mass in kg (?!)
+    :param sigma_dme: DM-free electron scattering cross-section at fixed
+    momentum transfer q=0 in cm2
+    :param srdm_model: class (default to standard halo model) containing velocity distribution
+    """
+    srdm_model = wr.SolarReflectedDMModel(mw, sigma_dme) if srdm_model is None else srdm_model
+    shell = shell_str(n, l)
+    eb = binding_es_for_dme(n, l)
+
+    # Only heavy mediator option available for now
+    f_dm = lambda q:1
+
+    # No bounds are given for the q integral
+    # but the form factors are only specified in a limited range of q
+    qmax = (np.exp(shell_data[shell]['lnqs'].max())
+            * (nu.me * nu.c0 * nu.alphaFS))
+
+    # Have to do double integral
+    # Note dblquad expects the function to be f(y, x), not f(x, y)...
+    def diff_xsec(v, q):
+        result = dme_ionization_ff(shell, erec, q) * f_dm(q)**2
+        result *= q/(v**2)
+
+        '''
+        if v>srdm_model.v_min:
+            print(f'how come smaller?, q={q}, v={v}')
+        elif v<srdm_model.v_max:
+            print(f'how come larger?, q={q}, v={v}')
+        else:
+            print(f'q={q:.3e}, v={v:.3e} good')
+        '''
+
+        result *= srdm_model.differential_flux(v)
+        return result
+
+    r = dblquad(
+        diff_xsec,
+        0,
+        qmax,
+        lambda q: max(v_min_dme(eb, erec, q, mw), srdm_model.v_min), # v min for particular q
+        lambda _: srdm_model.v_max, # v max for particular q
+        **kwargs)[0]
+
+    # DM-e reduced mass
+    mu_e = mw * nu.me / (mw + nu.me)
+
+    # Number of target atoms in 1 kg of Xenon
+    # potentially some units missing from this guy
+    n_target = 1/wr.mn()
+
+    return (
+        # Convert cross-section to rate
+        n_target * sigma_dme / (8. * mu_e ** 2)
+        # d/lnE -> d/E
+        * 1 / erec
+        # Prefactors in cross-section
         * r)

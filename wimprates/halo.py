@@ -7,7 +7,6 @@ import pandas as pd
 from scipy.special import erf
 
 
-
 import wimprates as wr
 export, __all__ = wr.exporter()
 
