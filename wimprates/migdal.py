@@ -77,8 +77,8 @@ def vmin_migdal(w, erec, mw, material):
 @wr.vectorize_first
 def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
                 include_approx_nr=False, q_nr=0.15, material="Xe",
-                t=None, halo_model=None, consider_shells=None,
-                **kwargs):
+                t=None, halo_model=wr.STANDARD_HALO_MODEL,
+                consider_shells=None, **kwargs):
     """Differential rate per unit detector mass and deposited ER energy of
     Migdal effect WIMP-nucleus scattering
 
@@ -108,7 +108,6 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
     Further kwargs are passed to scipy.integrate.quad numeric integrator
     (e.g. error tolerance).
     """
-    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     include_approx_nr = 1 if include_approx_nr else 0
 
     result = 0
@@ -150,14 +149,14 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
         r = dblquad(
             diff_rate,
             0,
-            wr.e_max(mw, wr.v_max(t, halo_model.v_esc), wr.mn(material)),
+            wr.e_max(mw, halo_model.v_max(t), wr.mn(material)),
             lambda erec: vmin_migdal(
                 w=w - include_approx_nr * erec * q_nr,
                 erec=erec,
                 mw=mw,
                 material=material,
             ),
-            lambda _: wr.v_max(t, halo_model.v_esc),
+            lambda _: halo_model.v_max(t),
             **kwargs)[0]
 
         result += r
