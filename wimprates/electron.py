@@ -30,7 +30,6 @@ def shell_str(n, l):
     return str(n) + l_to_letter[l]
 
 
-
 @export
 def dme_ionization_ff(shell, e_er, q):
     """Return dark matter electron scattering ionization form factor
@@ -84,35 +83,11 @@ def v_min_dme(eb, erec, q, mw):
     return (erec + eb) / q + q / (2 * mw)
 
 
-# Precompute velocity integrals for t=None
-@export 
-def velocity_integral_without_time(halo_model=None):
-    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
-    _v_mins = np.linspace(0, 1, 1000) * wr.v_max(None, halo_model.v_esc)
-    _ims = np.array([
-        quad(lambda v: 1 / v * halo_model.velocity_dist(v,None),
-            _v_min,
-             wr.v_max(None, halo_model.v_esc ))[0]
-        for _v_min in _v_mins])
-    
-    # Store interpolator in km/s rather than unit-dependent numbers
-    # so we don't have to recalculate them when nu.reset_units() is called
-    inverse_mean_speed_kms = interp1d(
-        _v_mins / (nu.km/nu.s),
-        _ims * (nu.km/nu.s),
-        # If we don't have 0 < v_min < v_max, we want to return 0
-        # so the integrand vanishes
-        fill_value=0, bounds_error=False)
-    return inverse_mean_speed_kms
-
-inverse_mean_speed_kms = velocity_integral_without_time()
-
-
 @export
 @wr.vectorize_first
 def rate_dme(erec, n, l, mw, sigma_dme,
              f_dm='1',
-             t=None, halo_model = None, **kwargs):
+             t=None, halo_model = wr.STANDARD_HALO_MODEL, **kwargs):
     """Return differential rate of dark matter electron scattering vs energy
     (i.e. dr/dE, not dr/dlogE)
     :param erec: Electronic recoil energy
@@ -127,9 +102,8 @@ def rate_dme(erec, n, l, mw, sigma_dme,
      '1_q2': |F_DM|^2 = (\alpha m_e c / q)^2, ultralight mediator
     :param t: A J2000.0 timestamp.
     If not given, a conservative velocity distribution is used.
-    :param halo_model: class (default to standard halo model) containing velocity distribution
+    :param halo_model: class (default to standard halo model) providing velocity distribution
     """
-    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     shell = shell_str(n, l)
     eb = binding_es_for_dme(n, l)
 
@@ -144,35 +118,15 @@ def rate_dme(erec, n, l, mw, sigma_dme,
     qmax = (np.exp(shell_data[shell]['lnqs'].max())
             * (nu.me * nu.c0 * nu.alphaFS))
 
-    if t is None:
-        # Use precomputed inverse mean speed,
-        # so we only have to do a single integral
-        def diff_xsec(q):
-            vmin = v_min_dme(eb, erec, q, mw)
-            result = q * dme_ionization_ff(shell, erec, q) * f_dm(q)**2
-            # Note the interpolator is in kms, not unit-carrying numbers
-            # see above
-            result *= inverse_mean_speed_kms(vmin / (nu.km/nu.s))
-            result /= (nu.km/nu.s)
-            return result
+    def diff_xsec(q):
+        vmin = v_min_dme(eb, erec, q, mw)
+        return (
+            q
+            * dme_ionization_ff(shell, erec, q)
+            * f_dm(q)**2
+            * halo_model.inverse_mean_speed(vmin, t))
 
-        r = quad(diff_xsec, 0, qmax)[0]
-
-    else:
-        # Have to do double integral
-        # Note dblquad expects the function to be f(y, x), not f(x, y)...
-        def diff_xsec(v, q):
-            result = q * dme_ionization_ff(shell, erec, q) * f_dm(q)**2
-            result *= 1 / v * halo_model.velocity_dist(v, t)
-            return result
-
-        r = dblquad(
-            diff_xsec,
-            0,
-            qmax,
-            lambda q: v_min_dme(eb, erec, q, mw),
-            lambda _: wr.v_max(t, halo_model.v_esc),
-            **kwargs)[0]
+    r = quad(diff_xsec, 0, qmax)[0]
 
     mu_e = mw * nu.me / (mw + nu.me)
 
@@ -184,3 +138,36 @@ def rate_dme(erec, n, l, mw, sigma_dme,
         # Prefactors in cross-section
         * sigma_dme / (8 * mu_e ** 2)
         * r)
+
+
+@export
+def rate_srdm(
+        erec, n, l, mw, sigma_dme,
+        f_dm='1',
+        t=None,
+        halo_model=wr.STANDARD_HALO_MODEL,
+        **kwargs):
+    """Differential rate for solar-reflected dark matter
+
+    Using models from DAMASCUS-Sun by Timon Emken, see 2102.12483v2
+
+    Calling this repeatedly is _SLOW_ -- instead, create a SolarReflectedDMEModel
+    once and pass it to rate_dme as a halo_model instead.
+
+    Just check the source of this function to see how to do that.
+    """
+    if f_dm != '1':
+        raise NotImplementedError(
+            "Our solar-reflected DM fluxes assume a heavy mediator")
+    srdm_model = wr.SolarReflectedDMEModel(
+        mw=mw,
+        sigma_dme=sigma_dme,
+        rho_dm=halo_model.rho_dm)
+    return srdm_model.rate_dme(
+        erec=erec,
+        n=n,
+        l=l,
+        f_dm=f_dm,
+        t=t,
+        halo_model=halo_model,
+        **kwargs)

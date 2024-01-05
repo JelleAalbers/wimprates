@@ -10,6 +10,12 @@ import numpy as np
 import wimprates as wr
 import unittest
 
+def assert_close(a, b):
+    # 1e-3 relative tolerance due to the precomputed inverse mean speed.
+    # Until we discover dark matter we don't really need its rates to
+    # more than 0.1% precision...
+    return np.testing.assert_allclose(a, b, rtol=1e-3, atol=1e-8)
+
 
 class TestBenchmarks(unittest.TestCase):
     opts = dict(mw=50,
@@ -18,53 +24,61 @@ class TestBenchmarks(unittest.TestCase):
     def test_elastic(self):
         ref = 30.39515403337126
 
-        self.assertAlmostEqual(wr.rate_wimp_std(1, **self.opts), ref)
+        assert_close(wr.rate_wimp_std(1, **self.opts), ref)
 
         # Test numericalunits.reset_units() does not affect results
         nu.reset_units(123)
-        self.assertAlmostEqual(wr.rate_wimp_std(1, **self.opts), ref)
+        assert_close(wr.rate_wimp_std(1, **self.opts), ref)
 
         # Test vectorized call
         energies = np.linspace(0.01, 40, 100)
         dr = wr.rate_wimp_std(energies, **self.opts)
-        self.assertEqual(dr[0], wr.rate_wimp_std(0.01, **self.opts))
+        assert_close(
+            dr[0],
+            wr.rate_wimp_std(0.01, **self.opts))
 
 
     def test_lightmediator(self):
-        self.assertAlmostEqual(wr.rate_wimp_std(1, m_med=1e-3, **self.opts),
-                0.0005039148255734496)
+        assert_close(
+            wr.rate_wimp_std(1, m_med=1e-3, **self.opts),
+            0.0005039148255734496)
 
 
     def test_spindependent(self):
-        self.assertAlmostEqual(wr.rate_wimp_std(1, interaction='SD_n_central', **self.opts),
-                0.00019944698779638946)
+        assert_close(
+            wr.rate_wimp_std(1, interaction='SD_n_central', **self.opts),
+            0.00019944698779638946)
 
 
     def test_migdal(self):
-        self.assertAlmostEqual(wr.rate_wimp_std(1, detection_mechanism='migdal', **self.opts),
-                0.27459766238555017)
+        assert_close(
+            wr.rate_wimp_std(1, detection_mechanism='migdal', **self.opts),
+            0.27459766238555017)
 
 
     def test_brems(self):
-        self.assertAlmostEqual(wr.rate_wimp_std(1, detection_mechanism='bremsstrahlung', **self.opts),
-                0.00017949417705393473)
+        assert_close(
+            wr.rate_wimp_std(1, detection_mechanism='bremsstrahlung', **self.opts),
+            0.00017949417705393473)
 
 
     def test_dme(self):
-        self.assertAlmostEqual(
+        assert_close(
             wr.rate_dme(100* nu.eV, 4, 'd',
                         mw=nu.GeV/nu.c0**2, sigma_dme=4e-44 * nu.cm**2)
                 * nu.kg * nu.keV * nu.day,
-        2.87553027086139e-06)
+            2.87553027086139e-06)
 
     def test_halo_scaling(self):
         #check that passing rho multiplies the rate correctly:
         ref = 30.39515403337113
         halo_model = wr.StandardHaloModel(rho_dm=0.3 * nu.GeV / nu.c0 ** 2 / nu.cm ** 3)
-        self.assertAlmostEqual(wr.rate_wimp_std(1,
-                                                halo_model=halo_model,
-                                                **self.opts,
-                                                ), ref)
+        assert_close(
+            wr.rate_wimp_std(1,
+                             halo_model=halo_model,
+                             **self.opts,
+                             ),
+            ref)
 
 
     def test_v_earth_old(self):
@@ -74,18 +88,17 @@ class TestBenchmarks(unittest.TestCase):
         """
         kms = nu.km/nu.s
         v_0_old = 220 * kms
-        
+
         # Unfortunately, we actually don't get the right answer in this test.
-        # the reason is that in the old convention, the years average 
+        # the reason is that in the old convention, the years average
         # was approximated by a different date from the current convention.
         # See https://github.com/JelleAalbers/wimprates/pull/14
         # We're now going to to just add the factor that we are of by, for
         # bookkeeping
         wrong_by_this_much = 2.40803047754608
-        
-        self.assertAlmostEqual(232 + wrong_by_this_much,
-                               wr.v_earth(t=None, v_0=v_0_old)/kms,
-                               )
+
+        assert_close(232 + wrong_by_this_much,
+                     wr.v_earth(t=None, v_0=v_0_old)/kms,)
 
     def test_average_v_earth(self):
         """

@@ -10,7 +10,7 @@ export, __all__ = wr.exporter()
 @export
 def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
               detection_mechanism='elastic_nr', m_med=float('inf'),
-              t=None, halo_model=None,
+              t=None, halo_model=wr.STANDARD_HALO_MODEL,
               **kwargs):
     """Differential rate per unit time, unit detector mass
     and unit recoil energy of WIMP-nucleus scattering.
@@ -43,7 +43,6 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
     Further kwargs are passed to scipy.integrate.quad numeric integrator
     (e.g. error tolerance).
     """
-    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     dmechs = dict(elastic_nr=wr.rate_elastic,
                   bremsstrahlung=wr.rate_bremsstrahlung,
                   migdal=wr.rate_migdal)
@@ -57,7 +56,7 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
 
 @export
 def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'),
-                  t=None, halo_model=None, **kwargs):
+                  t=None, halo_model=wr.STANDARD_HALO_MODEL, **kwargs):
     """Differential rate per (ton year keV) of WIMP-nucleus scattering.
     :param es: Recoil energies in keV
     :param mw: WIMP mass in GeV/c^2
@@ -71,7 +70,6 @@ def rate_wimp_std(es, mw, sigma_nucleon, m_med=float('inf'),
 
     Further arguments are as for rate_wimp; see docstring of rate_wimp.
     """
-    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     return (rate_wimp(es=es * nu.keV,
                       mw=mw * nu.GeV/nu.c0**2,
                       sigma_nucleon=sigma_nucleon * nu.cm**2,

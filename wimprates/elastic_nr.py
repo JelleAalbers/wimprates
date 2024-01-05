@@ -188,7 +188,7 @@ def vmin_elastic(erec, mw, material):
 @wr.vectorize_first
 def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
                  m_med=float('inf'), t=None, material='Xe',
-                 halo_model=None, **kwargs):
+                 halo_model=wr.STANDARD_HALO_MODEL, **kwargs):
     """Differential rate per unit detector mass and recoil energy of
     elastic WIMP scattering
 
@@ -211,19 +211,19 @@ def rate_elastic(erec, mw, sigma_nucleon, interaction='SI',
 
     Analytic expressions are known for this rate, but they are not used here.
     """
-
-    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     v_min = vmin_elastic(erec, mw, material)
-
-    if v_min >= wr.v_max(t, halo_model.v_esc):
+    if v_min >= halo_model.v_max(t):
         return 0
-
-    def integrand(v):
-        return (sigma_erec(erec, v, mw, sigma_nucleon,
-                           interaction, m_med, material=material) * v
-                * halo_model.velocity_dist(v, t))
-
-    return halo_model.rho_dm / mw * (1 / mn(material)) * quad(
-        integrand,
-        v_min, wr.v_max(t, halo_model.v_esc),
-        **kwargs)[0]
+    return (
+        halo_model.rho_dm / mw
+        * (1 / mn(material))
+        # The v factors can be factored out, to give an integral that
+        # evaluates to the inverse mean speed.
+        * sigma_erec(erec=erec,
+                     v=1,
+                     mw=mw,
+                     sigma_nucleon=sigma_nucleon,
+                     interaction=interaction,
+                     m_med=m_med,
+                     material=material)
+        * halo_model.inverse_mean_speed(v_min, t))
