@@ -50,8 +50,7 @@ class HaloModel:
             # Use precomputed value
             return self._inverse_mean_speed_kms(v_min / (nu.km/nu.s)) / (nu.km/nu.s)
         else:
-            # Compute on the fly. When inside another integral, dblquad is
-            # probably better.
+            # Compute on the fly
             return self._ims(v_min, t)
 
     def _ims(self, v_min, t):
@@ -64,8 +63,8 @@ class HaloModel:
         """
         # Precompute inverse mean speed for a range of likely v_mins,
         # for t = None.
-        # TODO: 1000 points is hardcoded, should be made configurable.
-        _v_mins = np.linspace(0, 1, 1000) * self.v_max(t=None)
+        # TODO: number of points is hardcoded, should be made configurable.
+        _v_mins = np.linspace(0, 1, 2500) * self.v_max(t=None)
         _ims = np.array([
             self._ims(_v_min, None)
             for _v_min in _v_mins])
