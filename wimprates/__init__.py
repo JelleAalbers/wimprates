@@ -2,7 +2,6 @@ __version__ = '0.5.0'
 
 from .utils import *
 from .halo import *
-from .srdm import *
 from .elastic_nr import *
 from .bremsstrahlung import *
 from .migdal import *
