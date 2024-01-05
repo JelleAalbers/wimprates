@@ -124,7 +124,7 @@ class StandardHaloModel(HaloModel):
     def rho_dm(self):
         return self._rho_dm_gevc2cm3 * nu.GeV/nu.c0**2 / nu.cm**3
 
-    def velocity_dist(self, v, t):
+    def velocity_dist(self, v, t=None):
         """Observed distribution of dark matter particle speeds on earth
         under the standard halo model.
 
@@ -309,6 +309,7 @@ def observed_speed_dist(v, t=None, v_0=None, v_esc=None):
     warnings.warn(
         "observed_speed_dist is deprecated. Use wr.StandardHaloModel(v_0=.., v_esc=...).velocity_dist(v, t)",
         DeprecationWarning)
+    return wr.StandardHaloModel(v_0=v_0, v_esc=v_esc).velocity_dist(v, t)
 
 
 # Preconstructed SHM instances so the inverse speed calculation does not trigger
