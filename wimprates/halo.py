@@ -324,9 +324,8 @@ __all__ += ['STANDARD_HALO_MODEL']
 
 @export
 class DifferentialFluxHaloModelWrapper(HaloModel):
-    """Provides a 'halo model' for models with a known differential flux,
+    """Standin for a 'halo model' if a model provides a differential flux,
         number_density * v * velocity_dist(v)
-
 
     Subclasses should implement differential_flux and v_max.
 

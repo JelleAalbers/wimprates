@@ -118,34 +118,15 @@ def rate_dme(erec, n, l, mw, sigma_dme,
     qmax = (np.exp(shell_data[shell]['lnqs'].max())
             * (nu.me * nu.c0 * nu.alphaFS))
 
-    if t is None:
-        # Use precomputed inverse mean speed,
-        # so we only have to do a single integral
-        def diff_xsec(q):
-            vmin = v_min_dme(eb, erec, q, mw)
-            return (
-                q
-                * dme_ionization_ff(shell, erec, q)
-                * f_dm(q)**2
-                * halo_model.inverse_mean_speed(vmin, t))
+    def diff_xsec(q):
+        vmin = v_min_dme(eb, erec, q, mw)
+        return (
+            q
+            * dme_ionization_ff(shell, erec, q)
+            * f_dm(q)**2
+            * halo_model.inverse_mean_speed(vmin, t))
 
-        r = quad(diff_xsec, 0, qmax)[0]
-
-    else:
-        # Have to do double integral
-        # Note dblquad expects the function to be f(y, x), not f(x, y)...
-        def diff_xsec(v, q):
-            result = q * dme_ionization_ff(shell, erec, q) * f_dm(q)**2
-            result *= 1 / v * halo_model.velocity_dist(v, t)
-            return result
-
-        r = dblquad(
-            diff_xsec,
-            0,
-            qmax,
-            lambda q: v_min_dme(eb, erec, q, mw),
-            lambda _: halo_model.v_max(t),
-            **kwargs)[0]
+    r = quad(diff_xsec, 0, qmax)[0]
 
     mu_e = mw * nu.me / (mw + nu.me)
 
@@ -157,3 +138,36 @@ def rate_dme(erec, n, l, mw, sigma_dme,
         # Prefactors in cross-section
         * sigma_dme / (8 * mu_e ** 2)
         * r)
+
+
+@export
+def rate_srdm(
+        erec, n, l, mw, sigma_dme,
+        f_dm='1',
+        t=None,
+        halo_model=wr.STANDARD_HALO_MODEL,
+        **kwargs):
+    """Differential rate for solar-reflected dark matter
+
+    Using models from DAMASCUS-Sun by Timon Emken, see 2102.12483v2
+
+    Calling this repeatedly is _SLOW_ -- instead, create a SolarReflectedDMEModel
+    once and pass it to rate_dme as a halo_model instead.
+
+    Just check the source of this function to see how to do that.
+    """
+    if f_dm != '1':
+        raise NotImplementedError(
+            "Our solar-reflected DM fluxes assume a heavy mediator")
+    srdm_model = wr.SolarReflectedDMEModel(
+        mw=mw,
+        sigma_dme=sigma_dme,
+        rho_dm=halo_model.rho_dm)
+    return srdm_model.rate_dme(
+        erec=erec,
+        n=n,
+        l=l,
+        f_dm=f_dm,
+        t=t,
+        halo_model=halo_model,
+        **kwargs)
