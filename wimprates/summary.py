@@ -32,6 +32,7 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
          'bremsstrahlung' for Bremsstrahlung photons
          'migdal' for the Migdal effect
     :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param halo_model: A class giving velocity distribution and dark matter density.
     :param t: A J2000.0 timestamp.
     If not given, conservative velocity distribution is used.
     :param progress_bar: if True, show a progress bar during evaluation
