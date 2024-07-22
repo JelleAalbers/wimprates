@@ -10,7 +10,7 @@ export, __all__ = wr.exporter()
 @export
 def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
               detection_mechanism='elastic_nr', m_med=float('inf'),
-              t=None, halo_model=None,
+              t=None, halo_model=None, 
               **kwargs):
     """Differential rate per unit time, unit detector mass
     and unit recoil energy of WIMP-nucleus scattering.
@@ -31,6 +31,10 @@ def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
          'elastic_nr' for regular elastic nuclear recoils
          'bremsstrahlung' for Bremsstrahlung photons
          'migdal' for the Migdal effect
+    :param migdal_model: model of Migdal effect
+         'Ibe' for model implemented in Ibe et al: https://arxiv.org/abs/1707.07258
+         'Cox' for exclusive transition model implemented 
+            in Cox et al: https://journals.aps.org/prd/abstract/10.1103/PhysRevD.107.035032
     :param m_med: Mediator mass. If not given, assumed very heavy.
     :param halo_model: A class giving velocity distribution and dark matter density.
     :param t: A J2000.0 timestamp.

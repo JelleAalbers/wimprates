@@ -1,6 +1,14 @@
-"""Migdal effect
-
 """
+Migdal effect
+
+Two implemented models:
+ * Ibe et al: https://arxiv.org/abs/1707.07258
+ * Cox et al: https://journals.aps.org/prd/abstract/10.1103/PhysRevD.107.035032
+
+ In the energy range of DM, the dipole approximation model implemented by Ibe et al
+ is compatible with the one developped by Cox et al (check discussion in Cox et al)
+"""
+
 import numericalunits as nu
 import numpy as np
 import pandas as pd
@@ -9,41 +17,48 @@ from scipy.integrate import dblquad
 from functools import lru_cache
 from fnmatch import fnmatch
 import wimprates as wr
+
+from .data.migdal.Cox.Migdal import Migdal as Migdal_Cox
 export, __all__ = wr.exporter()
 
 
 @lru_cache()
-def read_migdal_transitions(material='Xe'):
+def read_migdal_transitions(material='Xe', model="Ibe"):
     # Differential transition probabilities for <material> vs energy (eV)
 
-    df_migdal_material = pd.read_csv(wr.data_file('migdal/migdal_transition_%s.csv' %material))
+    if model == "Ibe":
+        df_migdal_material = pd.read_csv(wr.data_file('migdal/Ibe/migdal_transition_%s.csv' %material))
 
-    # Relevant (n, l) electronic states
-    migdal_states_material = df_migdal_material.columns.values.tolist()
-    migdal_states_material.remove('E')
+        # Relevant (n, l) electronic states
+        migdal_states_material = df_migdal_material.columns.values.tolist()
+        migdal_states_material.remove('E')
 
-    # Binding energies of the relevant electronic states
-    # From table II of 1707.07258
-    energy_nl = dict(
-        Xe=np.array([3.5e4,
-                     5.4e3, 4.9e3,
-                     1.1e3, 9.3e2, 6.6e2,
-                     2.0e2, 1.4e2, 6.1e1,
-                     2.1e1, 9.8]),
-        Ar=np.array([3.2e3,
-                     3.0e2, 2.4e2,
-                     2.7e1, 1.3e1]),
-        Ge=np.array([1.1e4,
-                     1.4e3, 1.2e3,
-                     1.7e2, 1.2e2, 3.5e1,
-                     1.5e1, 6.5e0]),
-        # http://www.chembio.uoguelph.ca/educmat/atomdata/bindener/grp14num.htm
-        Si=np.array([1844.1,
-                     154.04, 103.71,
-                     13.46, 8.1517]),
-    )
+        # Binding energies of the relevant electronic states
+        # From table II of 1707.07258
+        energy_nl = dict(
+            Xe=np.array([3.5e4,
+                        5.4e3, 4.9e3,
+                        1.1e3, 9.3e2, 6.6e2,
+                        2.0e2, 1.4e2, 6.1e1,
+                        2.1e1, 9.8]),
+            Ar=np.array([3.2e3,
+                        3.0e2, 2.4e2,
+                        2.7e1, 1.3e1]),
+            Ge=np.array([1.1e4,
+                        1.4e3, 1.2e3,
+                        1.7e2, 1.2e2, 3.5e1,
+                        1.5e1, 6.5e0]),
+            # http://www.chembio.uoguelph.ca/educmat/atomdata/bindener/grp14num.htm
+            Si=np.array([1844.1,
+                        154.04, 103.71,
+                        13.46, 8.1517]),
+        )
 
-    binding_es_for_migdal_material = dict(zip(migdal_states_material, energy_nl[material]))
+        binding_es_for_migdal_material = dict(zip(migdal_states_material, energy_nl[material]))
+    elif model == "Cox":
+        pass
+    else:
+        raise ValueError("Only 'Cox' and 'Ibe' models have been implemented")
 
     return df_migdal_material, binding_es_for_migdal_material,
 
@@ -77,7 +92,7 @@ def vmin_migdal(w, erec, mw, material):
 @wr.vectorize_first
 def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
                 include_approx_nr=False, q_nr=0.15, material="Xe",
-                t=None, halo_model=None, consider_shells=None,
+                t=None, halo_model=None, consider_shells=None, migdal_model="Ibe",
                 **kwargs):
     """Differential rate per unit detector mass and deposited ER energy of
     Migdal effect WIMP-nucleus scattering
@@ -112,7 +127,7 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
     include_approx_nr = 1 if include_approx_nr else 0
 
     result = 0
-    df_migdal, binding_es_for_migdal = read_migdal_transitions(material=material)
+    df_migdal, binding_es_for_migdal = read_migdal_transitions(material=material, model=migdal_model)
     if consider_shells is None:
         consider_shells = _default_shells(material)
     for state, binding_e in binding_es_for_migdal.items():

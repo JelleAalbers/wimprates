@@ -40,8 +40,8 @@ class TestBenchmarks(unittest.TestCase):
                 0.00019944698779638946)
 
 
-    def test_migdal(self):
-        self.assertAlmostEqual(wr.rate_wimp_std(1, detection_mechanism='migdal', **self.opts),
+    def test_migdal_Ibe(self):
+        self.assertAlmostEqual(wr.rate_wimp_std(1, detection_mechanism='migdal', migdal_model="Ibe", **self.opts),
                 0.27459766238555017)
 
 
