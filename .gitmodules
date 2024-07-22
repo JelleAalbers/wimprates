@@ -1,0 +1,3 @@
+[submodule "wimprates/data/migdal/Cox"]
+	path = wimprates/data/migdal/Cox
+	url = https://github.com/petercox/Migdal.git
