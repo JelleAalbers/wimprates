@@ -29,8 +29,28 @@ export, __all__ = wr.exporter()
 
 @dataclass
 class Shell:
+    """
+    Describes a specific atomic shell for the selected atom.
+
+    Attributes:
+        name (str): The name of the shell.
+        element (str): The element class of the atom.
+        binding_e (float): The binding energy for the shell.
+        model (str): The model used for the single ionization probability computation.
+        single_ionization_probability (Callable): A function to assign interpolators to.
+            The interpolator will provide the single ionization probability for the shell
+            according to the selected model.
+
+    Methods:
+        __call__(*args, **kwargs) -> np.ndarray:
+            Calls the single_ionization_probability function with the given arguments and keyword arguments.
+
+    Properties:
+        n (int): Primary quantum number.
+        l (str): Azimuthal quantum number for Ibe; Azimuthal + magnetic quantum number for Cox.
+    """
     name: str
-    material: str
+    element: str
     binding_e: float
     model: str
     single_ionization_probability: Callable  # to assign interpolators to
@@ -48,6 +68,13 @@ class Shell:
 
 
 def _default_shells(material: str) -> list[str]:
+    """
+    Returns the default shells to consider for a given material.
+    Args:
+        material (str): The material for which to determine the default shells.
+    Returns:
+        list[str]: The default shells to consider for the given material.
+    """
 
     consider_shells = dict(
         # For Xe, only consider n=3 and n=4
@@ -69,7 +96,7 @@ def create_cox_probability_function(
     material: str,
     dipole: bool = False,
 ) -> Callable[..., np.ndarray[Any, Any]]:
-
+    
     fn_name = "dpI1dipole" if dipole else "dpI1"
     fn = getattr(element, fn_name)
 
@@ -95,7 +122,7 @@ def create_cox_probability_function(
 
 
 @export
-def get_migdal_transitions_probability_iterator(
+def get_migdal_transitions_probability_iterators(
     material: str = "Xe",
     model: str = "Ibe",
     considered_shells: Optional[list[str] | str] = None,
@@ -256,7 +283,7 @@ def rate_migdal(
     if not consider_shells:
         consider_shells = _default_shells(material)
 
-    shells = get_migdal_transitions_probability_iterator(
+    shells = get_migdal_transitions_probability_iterators(
         material=material,
         model=migdal_model,
         considered_shells=consider_shells,
