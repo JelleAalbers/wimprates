@@ -1,6 +1,8 @@
+import functools
 import inspect
 import os
 import pickle
+import warnings
 
 from boltons.funcutils import wraps
 import numpy as np
@@ -105,3 +107,21 @@ def pairwise_log_transform(a, b):
     b = np.atleast_1d(b).reshape(-1, 1)
     arr = np.concatenate((a, b), axis=1)
     return np.log(arr)
+
+@export
+def deprecated(reason):
+    """
+    This is a decorator which can be used to mark functions as deprecated.
+    It will result in a warning being emitted when the function is used.
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def new_func(*args, **kwargs):
+            warnings.warn(
+                f"Call to deprecated function {func.__name__} ({reason}).",
+                category=DeprecationWarning,
+                stacklevel=2
+            )
+            return func(*args, **kwargs)
+        return new_func
+    return decorator
