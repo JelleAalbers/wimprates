@@ -9,16 +9,21 @@ Two implemented models:
  is compatible with the one developped by Cox et al (check discussion in Cox et al)
 """
 
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any, Optional, Self
+
+from fnmatch import fnmatch
+from functools import lru_cache
 import numericalunits as nu
 import numpy as np
 import pandas as pd
-from scipy.interpolate import interp1d
 from scipy.integrate import dblquad
-from functools import lru_cache
-from fnmatch import fnmatch
+from scipy.interpolate import interp1d
+
 import wimprates as wr
 
-from .data.migdal.Cox.Migdal import Migdal as Migdal_Cox
+
 export, __all__ = wr.exporter()
 
 
