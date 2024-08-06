@@ -85,7 +85,7 @@ def create_cox_probability_function(
             v = (2 * erec / wr.mn(material)) ** 0.5 / nu.c0
         else:
             raise ValueError("Either v or erec have to be provided")
-        # print(f"{e/nu.keV=} corresponds to {v=}")
+        
         e /= nu.keV
 
         input_points = wr.pairwise_log_transform(e, v)
