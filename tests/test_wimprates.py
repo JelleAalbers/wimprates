@@ -43,6 +43,16 @@ class TestBenchmarks(unittest.TestCase):
     def test_migdal_Ibe(self):
         self.assertAlmostEqual(wr.rate_wimp_std(1, detection_mechanism='migdal', migdal_model="Ibe", **self.opts),
                 0.27459766238555017)
+    
+    
+    def test_migdal_Cox(self):
+        self.assertAlmostEqual(wr.rate_wimp_std(1, detection_mechanism='migdal', migdal_model="Cox", **self.opts),
+                0.2843514286729741)
+    
+    
+    def test_migdal_Cox_dipole(self):
+        self.assertAlmostEqual(wr.rate_wimp_std(1, detection_mechanism='migdal', migdal_model="Cox", dipole=True, **self.opts),
+                0.30438231874513705)
 
 
     def test_brems(self):
@@ -104,3 +114,6 @@ class TestBenchmarks(unittest.TestCase):
             # places=1 means that we get the same results at the first decimal (fine for 500.0<?>)
             places=1
         )
+
+if __name__ == "__main__":
+    unittest.main()

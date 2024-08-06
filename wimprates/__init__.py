@@ -14,4 +14,4 @@ from .bremsstrahlung import *
 from .migdal import *
 from .electron import *
 from .summary import *
-
+from .data.migdal.Cox.cox_wrapper import *
