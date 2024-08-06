@@ -4,3 +4,4 @@ pandas
 tqdm
 boltons
 numericalunits
+seaborn
