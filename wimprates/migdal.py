@@ -359,10 +359,10 @@ def rate_migdal(
 
     return halo_model.rho_dm / mw * (1 / wr.mn(material)) * np.array(result)
 
-
-### (DEPRECATED) Maintain this for backwards accessibility
+@wr.deprecated("Use get_migdal_transitions_probability_iterators instead")
 @lru_cache()
 def read_migdal_transitions(material="Xe"):
+    ### (DEPRECATED) Maintain this for backwards accessibility
     # Differential transition probabilities for <material> vs energy (eV)
 
     df_migdal_material = pd.read_csv(
