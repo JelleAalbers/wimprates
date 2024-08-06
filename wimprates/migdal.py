@@ -11,7 +11,7 @@ Two implemented models:
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, Self
 
 from fnmatch import fnmatch
 from functools import lru_cache
@@ -55,15 +55,15 @@ class Shell:
     model: str
     single_ionization_probability: Callable  # to assign interpolators to
 
-    def __call__(self, *args, **kwargs) -> np.ndarray:
+    def __call__(self: Self, *args, **kwargs) -> np.ndarray:
         return self.single_ionization_probability(*args, **kwargs)
 
     @property
-    def n(self) -> int:
+    def n(self: Self) -> int:
         return int(self.name[0])
 
     @property
-    def l(self) -> str:
+    def l(self: Self) -> str:
         return self.name[1:]
 
 
