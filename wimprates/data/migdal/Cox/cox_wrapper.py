@@ -16,7 +16,7 @@ export, __all__ = wr.exporter()
 
 
 @export
-def cox_migdal_model(element: str, **kwargs):
+def cox_migdal_model(element: str, **kwargs) -> Migdal:
     """
     This function creates a Cox Migdal model for a given element.
 
