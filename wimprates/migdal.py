@@ -11,7 +11,7 @@ Two implemented models:
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Optional, Self
+from typing import Any, Optional, Union
 
 from fnmatch import fnmatch
 from functools import lru_cache
@@ -49,21 +49,22 @@ class Shell:
         n (int): Primary quantum number.
         l (str): Azimuthal quantum number for Ibe; Azimuthal + magnetic quantum number for Cox.
     """
+
     name: str
     element: str
     binding_e: float
     model: str
     single_ionization_probability: Callable  # to assign interpolators to
 
-    def __call__(self: Self, *args, **kwargs) -> np.ndarray:
+    def __call__(self, *args, **kwargs) -> np.ndarray:
         return self.single_ionization_probability(*args, **kwargs)
 
     @property
-    def n(self: Self) -> int:
+    def n(self) -> int:
         return int(self.name[0])
 
     @property
-    def l(self: Self) -> str:
+    def l(self) -> str:
         return self.name[1:]
 
 
@@ -96,14 +97,14 @@ def create_cox_probability_function(
     material: str,
     dipole: bool = False,
 ) -> Callable[..., np.ndarray[Any, Any]]:
-    
+
     fn_name = "dpI1dipole" if dipole else "dpI1"
     fn = getattr(element, fn_name)
 
     def get_probability(
-        e: float | np.ndarray,  # energy of released electron
-        erec: Optional[float | np.ndarray] = None,  # recoil energy
-        v: Optional[float | np.ndarray] = None,  # recoil speed
+        e: Union[float, np.ndarray],  # energy of released electron
+        erec: Optional[Union[float, np.ndarray]] = None,  # recoil energy
+        v: Optional[Union[float, np.ndarray]] = None,  # recoil speed
     ) -> np.ndarray:
         if erec is None:
             if v is None:
@@ -112,7 +113,7 @@ def create_cox_probability_function(
             v = (2 * erec / wr.mn(material)) ** 0.5 / nu.c0
         else:
             raise ValueError("Either v or erec have to be provided")
-        
+
         e /= nu.keV
 
         input_points = wr.pairwise_log_transform(e, v)
@@ -125,7 +126,7 @@ def create_cox_probability_function(
 def get_migdal_transitions_probability_iterators(
     material: str = "Xe",
     model: str = "Ibe",
-    considered_shells: Optional[list[str] | str] = None,
+    considered_shells: Optional[Union[list[str], str]] = None,
     dark_matter: bool = True,
     e_threshold: Optional[float] = None,
     dipole: bool = False,
@@ -358,6 +359,7 @@ def rate_migdal(
         result += r
 
     return halo_model.rho_dm / mw * (1 / wr.mn(material)) * np.array(result)
+
 
 @wr.deprecated("Use get_migdal_transitions_probability_iterators instead")
 @lru_cache()
