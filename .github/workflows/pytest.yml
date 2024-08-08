@@ -48,7 +48,6 @@ jobs:
           # Several optional packages that are imported in the notebooks
           pip install git+https://github.com/XENON1T/laidbax
           pip install -e .
-          pip install seaborn matplotlib
       - name: Test package
         if: matrix.test == 'pytest'
         run:
