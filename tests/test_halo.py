@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import pandas as pd
-from wimprates import j2000, StandardHaloModel, j2000_from_ymd
+from wimprates import j2000, StandardHaloModel, j2000_from_ymd, j2000_to_datetime
 import numericalunits as nu
 import numpy as np
 
@@ -19,6 +19,11 @@ def test_j2000():
 def test_j2000_datetime():
     date = datetime(year=2009, month=1, day=31, hour=18)
     assert j2000(date) == 3318.25
+
+
+def test_datetime_j2000():
+    date = 3318.25
+    assert j2000_to_datetime(date) == datetime(year=2009, month=1, day=31, hour=18)
 
 
 def test_j2000_ns_int():
