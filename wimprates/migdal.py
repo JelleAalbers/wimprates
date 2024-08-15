@@ -10,6 +10,7 @@ Two implemented models:
 """
 
 from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from typing import Any, Optional, Union
 
@@ -17,6 +18,7 @@ from fnmatch import fnmatch
 from functools import lru_cache
 import numericalunits as nu
 import numpy as np
+from tqdm.autonotebook import tqdm
 import pandas as pd
 from scipy.integrate import dblquad
 from scipy.interpolate import interp1d
@@ -68,7 +70,7 @@ class Shell:
         return self.name[1:]
 
 
-def _default_shells(material: str) -> list[str]:
+def _default_shells(material: str) -> tuple[str]:
     """
     Returns the default shells to consider for a given material.
     Args:
@@ -88,45 +90,25 @@ def _default_shells(material: str) -> list[str]:
         Ge=["3*"],
         Si=["2*"],
     )
-    return consider_shells[material]
+    return tuple(consider_shells[material])
 
 
-def create_cox_probability_function(
-    element,
-    state: str,
-    material: str,
+def _create_cox_probability_function(
+    element: str,
     dipole: bool = False,
 ) -> Callable[..., np.ndarray[Any, Any]]:
 
     fn_name = "dpI1dipole" if dipole else "dpI1"
     fn = getattr(element, fn_name)
 
-    def get_probability(
-        e: Union[float, np.ndarray],  # energy of released electron
-        erec: Optional[Union[float, np.ndarray]] = None,  # recoil energy
-        v: Optional[Union[float, np.ndarray]] = None,  # recoil speed
-    ) -> np.ndarray:
-        if erec is None:
-            if v is None:
-                raise ValueError("Either v or erec have to be provided")
-        elif v is None:
-            v = (2 * erec / wr.mn(material)) ** 0.5 / nu.c0
-        else:
-            raise ValueError("Either v or erec have to be provided")
-
-        e /= nu.keV
-
-        input_points = wr.pairwise_log_transform(e, v)
-        return fn(input_points, state) / nu.keV  # type: ignore
-
-    return get_probability
+    return fn
 
 
 @export
 def get_migdal_transitions_probability_iterators(
     material: str = "Xe",
     model: str = "Ibe",
-    considered_shells: Optional[Union[list[str], str]] = None,
+    considered_shells: Optional[Union[tuple[str], str]] = None,
     dark_matter: bool = True,
     e_threshold: Optional[float] = None,
     dipole: bool = False,
@@ -193,6 +175,7 @@ def get_migdal_transitions_probability_iterators(
             dipole=dipole,
             dark_matter=dark_matter,
             e_threshold=e_threshold,
+            **kwargs
         )
 
         for state, binding_e in element.orbitals:
@@ -205,10 +188,8 @@ def get_migdal_transitions_probability_iterators(
                     material,
                     binding_e * nu.keV,
                     model,
-                    single_ionization_probability=create_cox_probability_function(
+                    single_ionization_probability=_create_cox_probability_function(
                         element,
-                        state,
-                        material,
                         dipole=dipole,
                     ),
                 )
@@ -230,69 +211,21 @@ def vmin_migdal(
     return np.maximum(0, y)
 
 
-@export
-@wr.vectorize_first
-def rate_migdal(
-    w: np.ndarray,
+def get_diff_rate(
+    w: float,
+    shells: list[Shell],
     mw: float,
     sigma_nucleon: float,
-    interaction: str = "SI",
-    m_med: float = float("inf"),
-    include_approx_nr: bool = False,
-    q_nr: float = 0.15,
-    material: str = "Xe",
-    t: Optional[float] = None,
-    halo_model: Optional[wr.StandardHaloModel] = None,
-    consider_shells: Optional[list[str]] = None,
-    migdal_model: str = "Ibe",
-    dark_matter: bool = True,
-    dipole: bool = False,
-    e_threshold: Optional[float] = None,
+    halo_model: wr.StandardHaloModel,
+    interaction: str,
+    m_med: float,
+    migdal_model: str,
+    include_approx_nr: bool,
+    q_nr: float,
+    material: str,
+    t: Optional[float],
     **kwargs,
-) -> np.ndarray:
-    """Differential rate per unit detector mass and deposited ER energy of
-    Migdal effect WIMP-nucleus scattering
-
-    :param w: ER energy deposited in detector through Migdal effect
-    :param mw: Mass of WIMP
-    :param sigma_nucleon: WIMP/nucleon cross-section
-    :param interaction: string describing DM-nucleus interaction.
-    See sigma_erec for options
-    :param m_med: Mediator mass. If not given, assumed very heavy.
-    :param include_approx_nr: If True, instead return differential rate
-        per *detected* energy, including the contribution of
-        the simultaneous NR signal approximately, assuming q_{NR} = 0.15.
-        This is how https://arxiv.org/abs/1707.07258
-        presented the Migdal spectra.
-    :param q_nr: conversion between Enr and Eee (see p. 27 of
-        https://arxiv.org/pdf/1707.07258.pdf)
-    :param material: name of the detection material (default is 'Xe')
-    :param t: A J2000.0 timestamp.
-    If not given, conservative velocity distribution is used.
-    :param halo_model: class (default to standard halo model)
-    containing velocity distribution
-    :param consider_shells: consider the following atomic shells, are
-        fnmatched to the format from Ibe (i.e. 1_0, 1_1, etc).
-    :param progress_bar: if True, show a progress bar during evaluation
-    (if w is an array)
-
-    Further kwargs are passed to scipy.integrate.quad numeric integrator
-    (e.g. error tolerance).
-    """
-    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
-
-    if not consider_shells:
-        consider_shells = _default_shells(material)
-
-    shells = get_migdal_transitions_probability_iterators(
-        material=material,
-        model=migdal_model,
-        considered_shells=consider_shells,
-        dipole=dipole,
-        e_threshold=e_threshold,
-        dark_matter=dark_matter,
-    )
-
+):
     result = 0
     for shell in shells:
 
@@ -326,6 +259,8 @@ def rate_migdal(
                     * shell(eelec)
                 )
             elif migdal_model == "Cox":
+                vrec = (2 * erec / wr.mn(material)) ** 0.5 / nu.c0
+                input_points = wr.pairwise_log_transform(eelec/nu.keV, vrec)
                 return (
                     wr.sigma_erec(
                         erec,
@@ -338,11 +273,11 @@ def rate_migdal(
                     )
                     * v
                     * halo_model.velocity_dist(v, t)
-                    * shell(eelec, erec)
+                    * shell(input_points, shell.name) / nu.keV
                 )
 
         # Note dblquad expects the function to be f(y, x), not f(x, y)...
-        r = dblquad(
+        result += dblquad(
             diff_rate,
             0,
             wr.e_max(mw, wr.v_max(t, halo_model.v_esc), wr.mn(material)),
@@ -356,9 +291,133 @@ def rate_migdal(
             **kwargs,
         )[0]
 
-        result += r
+    return result
 
-    return halo_model.rho_dm / mw * (1 / wr.mn(material)) * np.array(result)
+
+@export
+def rate_migdal(
+    w: Union[np.ndarray, float],
+    mw: float,
+    sigma_nucleon: float,
+    interaction: str = "SI",
+    m_med: float = float("inf"),
+    include_approx_nr: bool = False,
+    q_nr: float = 0.15,
+    material: str = "Xe",
+    t: Optional[float] = None,
+    halo_model: Optional[wr.StandardHaloModel] = None,
+    consider_shells: Optional[tuple[str]] = None,
+    migdal_model: str = "Ibe",
+    dark_matter: bool = True,
+    dipole: bool = False,
+    e_threshold: Optional[float] = None,
+    progress_bar: bool = False,
+    multi_process: Optional[Union[bool, int]] = True,
+    **kwargs,
+) -> np.ndarray:
+    """Differential rate per unit detector mass and deposited ER energy of
+    Migdal effect WIMP-nucleus scattering
+
+    :param w: ER energy deposited in detector through Migdal effect
+    :param mw: Mass of WIMP
+    :param sigma_nucleon: WIMP/nucleon cross-section
+    :param interaction: string describing DM-nucleus interaction.
+    See sigma_erec for options
+    :param m_med: Mediator mass. If not given, assumed very heavy.
+    :param include_approx_nr: If True, instead return differential rate
+        per *detected* energy, including the contribution of
+        the simultaneous NR signal approximately, assuming q_{NR} = 0.15.
+        This is how https://arxiv.org/abs/1707.07258
+        presented the Migdal spectra.
+    :param q_nr: conversion between Enr and Eee (see p. 27 of
+        https://arxiv.org/pdf/1707.07258.pdf)
+    :param material: name of the detection material (default is 'Xe')
+    :param t: A J2000.0 timestamp.
+    If not given, conservative velocity distribution is used.
+    :param halo_model: class (default to standard halo model)
+    containing velocity distribution
+    :param consider_shells: consider the following atomic shells, are
+        fnmatched to the format from Ibe (i.e. 1_0, 1_1, etc).
+    :param progress_bar: if True, show a progress bar during evaluation
+    (if w is an array)
+
+    Further kwargs are passed to scipy.integrate.quad numeric integrator
+    (e.g. error tolerance).
+    """
+    _is_array = True
+    if not isinstance(w, np.ndarray):
+        if isinstance(w, float):
+            _is_array = False
+            w = np.array([w])
+        else:
+            raise ValueError("w must be a float or a numpy array")
+
+    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
+
+    if progress_bar:
+        prog_bar = tqdm
+    else:
+        prog_bar = lambda x, *args, **kwargs: x
+
+    if not consider_shells:
+        consider_shells = _default_shells(material)
+
+    shells = get_migdal_transitions_probability_iterators(
+        material=material,
+        model=migdal_model,
+        considered_shells=consider_shells,
+        dipole=dipole,
+        e_threshold=e_threshold,
+        dark_matter=dark_matter,
+    )
+
+    results = []
+    if multi_process and not dipole:
+        multi_process = None if isinstance(multi_process, bool) else multi_process
+        with ProcessPoolExecutor(multi_process) as executor:
+            futures = []
+            for val in w:
+                futures.append(
+                    executor.submit(
+                        get_diff_rate,
+                        val,
+                        shells,
+                        mw,
+                        sigma_nucleon,
+                        halo_model,
+                        interaction,
+                        m_med,
+                        migdal_model,
+                        include_approx_nr,
+                        q_nr,
+                        material,
+                        t,
+                    )
+                )
+
+            for future in prog_bar(futures, desc="Computing rates"):
+                results.append(future.result())
+    else:
+        for val in prog_bar(w, desc="Computing rates"):
+            results.append(
+                get_diff_rate(
+                    val,
+                    shells,
+                    mw,
+                    sigma_nucleon,
+                    halo_model,
+                    interaction,
+                    m_med,
+                    migdal_model,
+                    include_approx_nr,
+                    q_nr,
+                    material,
+                    t,
+                )
+            )
+
+    results = np.array(results) if _is_array else float(results[0])
+    return halo_model.rho_dm / mw * (1 / wr.mn(material)) * results
 
 
 @wr.deprecated("Use get_migdal_transitions_probability_iterators instead")
