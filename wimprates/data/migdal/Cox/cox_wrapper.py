@@ -5,17 +5,18 @@ the interpolators, then returning the Migdal class instance once they've been in
 The working directory is then reset.
 """
 
+from functools import lru_cache
 import os
 import sys
 
-import wimprates as wr
-
 from .cox_submodule.Migdal import Migdal
+import wimprates as wr
 
 export, __all__ = wr.exporter()
 
 
 @export
+@lru_cache
 def cox_migdal_model(element: str, **kwargs) -> Migdal:
     """
     This function creates a Cox Migdal model for a given element.
