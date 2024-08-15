@@ -1,5 +1,6 @@
 """Dark matter - electron scattering
 """
+from functools import lru_cache
 import numericalunits as nu
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator, interp1d
@@ -9,13 +10,17 @@ import wimprates as wr
 export, __all__ = wr.exporter()
 __all__ += ['dme_shells', 'l_to_letter', 'l_to_number']
 
-# Load form factor and construct interpolators
-shell_data = wr.load_pickle('dme/dme_ionization_ff.pkl')
-for _shell, _sd in shell_data.items():
-    _sd['log10ffsquared_itp'] = RegularGridInterpolator(
-        (_sd['lnks'], _sd['lnqs']),
-        np.log10(_sd['ffsquared']),
-        bounds_error=False, fill_value=-float('inf'),)
+
+@lru_cache()
+def get_shell_data():
+    """Load form factor and construct interpolators"""
+    shell_data = wr.load_pickle('dme/dme_ionization_ff.pkl')
+    for _shell, _sd in shell_data.items():
+        _sd['log10ffsquared_itp'] = RegularGridInterpolator(
+            (_sd['lnks'], _sd['lnqs']),
+            np.log10(_sd['ffsquared']),
+            bounds_error=False, fill_value=-float('inf'),)
+    return shell_data
 
 
 dme_shells = [(5, 1), (5, 0), (4, 2), (4, 1), (4, 0)]
@@ -54,6 +59,9 @@ def dme_ionization_ff(shell, e_er, q):
     # Ry = rydberg = 13.6 eV
     ry = nu.me * nu.e ** 4 / (8 * nu.eps0 ** 2 * nu.hPlanck ** 2)
     lnk = np.log(e_er / ry) / 2
+
+    shell_data = get_shell_data()
+
     return 10**(shell_data[shell]['log10ffsquared_itp'](
         np.vstack([lnk, lnq]).T))
 
@@ -84,8 +92,8 @@ def v_min_dme(eb, erec, q, mw):
     return (erec + eb) / q + q / (2 * mw)
 
 
-# Precompute velocity integrals for t=None
 @export 
+@lru_cache()
 def velocity_integral_without_time(halo_model=None):
     halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     _v_mins = np.linspace(0, 1, 1000) * wr.v_max(None, halo_model.v_esc)
@@ -105,7 +113,6 @@ def velocity_integral_without_time(halo_model=None):
         fill_value=0, bounds_error=False)
     return inverse_mean_speed_kms
 
-inverse_mean_speed_kms = velocity_integral_without_time()
 
 
 @export
@@ -141,9 +148,12 @@ def rate_dme(erec, n, l, mw, sigma_dme,
 
     # No bounds are given for the q integral
     # but the form factors are only specified in a limited range of q
+    shell_data = get_shell_data()
     qmax = (np.exp(shell_data[shell]['lnqs'].max())
             * (nu.me * nu.c0 * nu.alphaFS))
 
+    # Precompute velocity integrals for t=None
+    inverse_mean_speed_kms = velocity_integral_without_time()
     if t is None:
         # Use precomputed inverse mean speed,
         # so we only have to do a single integral
