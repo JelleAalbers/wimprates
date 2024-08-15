@@ -77,7 +77,7 @@ def j2000_to_datetime(j2000_date):
 
     nanoseconds_per_day = nu.day / nu.ns
     _date = pd.to_datetime(j2000_date * nanoseconds_per_day).value
-    return pd.to_datetime(_date + zero_value)
+    return pd.to_datetime(_date + zero_value).round("ns")
 
 @export
 def earth_velocity(t, v_0 = None):
