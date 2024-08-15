@@ -1,12 +1,16 @@
 import functools
+import hashlib
 import inspect
 import os
 import pickle
+from typing import Any, Callable
 import warnings
 
 from boltons.funcutils import wraps
 import numpy as np
 from tqdm.autonotebook import tqdm
+
+import wimprates as wr
 
 
 def exporter():
@@ -108,6 +112,7 @@ def pairwise_log_transform(a, b):
     arr = np.concatenate((a, b), axis=1)
     return np.log(arr)
 
+
 @export
 def deprecated(reason):
     """
@@ -125,3 +130,57 @@ def deprecated(reason):
             return func(*args, **kwargs)
         return new_func
     return decorator
+
+
+def _generate_hash(*args, **kwargs):
+    # Create a string with the arguments and module version
+
+    args_str = wr.__version__ + str(args)
+
+    # Add keyword arguments to the string
+    args_str += "".join(
+        [f"{key}{kwargs[key]}" for key in sorted(kwargs) if key != "progress_bar"]
+    )
+
+    # Generate a SHA-256 hash
+    return hashlib.sha256(args_str.encode()).hexdigest()
+
+
+@export
+def save_result(func: Callable) -> Callable[..., Any]:
+    @wraps(func)
+    def wrapper(
+        *args, cache_dir: str="wimprates_cache", save_cache: bool=True, load_cache: bool=True, **kwargs
+    ):
+        # Define the cache directory
+        CACHE_DIR = cache_dir
+
+        # Generate the hash based on function arguments and module version
+        func_name = func.__name__
+        cache_key = _generate_hash(*args, **kwargs)
+
+        # Define the path to the cache file
+        cache_file = os.path.join(CACHE_DIR, f"{func_name}_{cache_key}.pkl")
+
+        # Check if the result is already cached
+        if load_cache and os.path.exists(cache_file):
+            with open(cache_file, "rb") as f:
+                print("Loading from cache: ", cache_file)
+                return pickle.load(f)
+
+        # Compute the result
+        result = func(*args, **kwargs)
+
+        if save_cache:
+            # Ensure cache directory exists
+            if not os.path.exists(CACHE_DIR):
+                os.makedirs(CACHE_DIR)
+            
+            # Save the result to the cache
+            with open(cache_file, "wb") as f:
+                pickle.dump(result, f)
+                print("Result saved to cache: ", cache_file)
+
+        return result
+
+    return wrapper
