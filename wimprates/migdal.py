@@ -12,10 +12,11 @@ Two implemented models:
 from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
+import os
 from typing import Any, Optional, Union
 
 from fnmatch import fnmatch
-from functools import lru_cache
+from functools import lru_cache, partial
 import numericalunits as nu
 import numpy as np
 from tqdm.autonotebook import tqdm
@@ -312,7 +313,7 @@ def rate_migdal(
     dipole: bool = False,
     e_threshold: Optional[float] = None,
     progress_bar: bool = False,
-    multi_process: Optional[Union[bool, int]] = True,
+    multi_processing: Optional[Union[bool, int]] = True,
     **kwargs,
 ) -> np.ndarray:
     """Differential rate per unit detector mass and deposited ER energy of
@@ -371,33 +372,34 @@ def rate_migdal(
         dark_matter=dark_matter,
     )
 
-    results = []
-    if multi_process and not dipole:
-        multi_process = None if isinstance(multi_process, bool) else multi_process
-        with ProcessPoolExecutor(multi_process) as executor:
-            futures = []
-            for val in w:
-                futures.append(
-                    executor.submit(
-                        get_diff_rate,
-                        val,
-                        shells,
-                        mw,
-                        sigma_nucleon,
-                        halo_model,
-                        interaction,
-                        m_med,
-                        migdal_model,
-                        include_approx_nr,
-                        q_nr,
-                        material,
-                        t,
-                    )
-                )
+    if multi_processing and not dipole:
+        multi_processing = None if isinstance(multi_processing, bool) else multi_processing
+        with ProcessPoolExecutor(multi_processing) as executor:
+            partial_get_diff_rate = partial(
+                get_diff_rate,
+                shells=shells,
+                mw=mw,
+                sigma_nucleon=sigma_nucleon,
+                halo_model=halo_model,
+                interaction=interaction,
+                m_med=m_med,
+                migdal_model=migdal_model,
+                include_approx_nr=include_approx_nr,
+                q_nr=q_nr,
+                material=material,
+                t=t,
+            )
 
-            for future in prog_bar(futures, desc="Computing rates"):
-                results.append(future.result())
+            n_workers = os.cpu_count() if multi_processing is None else multi_processing
+            results = list(
+                prog_bar(
+                    executor.map(partial_get_diff_rate, w),
+                    desc=f"Computing rates (MP={n_workers} workers)",
+                    total=len(w),
+                )
+            )
     else:
+        results = []
         for val in prog_bar(w, desc="Computing rates"):
             results.append(
                 get_diff_rate(
