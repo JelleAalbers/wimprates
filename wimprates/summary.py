@@ -2,12 +2,14 @@
 Summary functions
 """
 import numericalunits as nu
+nu.reset_units(42)  # Comment this line this when debugging dimensional analysis errors
 
 import wimprates as wr
 export, __all__ = wr.exporter()
 
 
 @export
+@wr.save_result
 def rate_wimp(es, mw, sigma_nucleon, interaction='SI',
               detection_mechanism='elastic_nr', m_med=float('inf'),
               t=None, halo_model=None, 

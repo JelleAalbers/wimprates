@@ -14,6 +14,8 @@ import unittest
 class TestBenchmarks(unittest.TestCase):
     opts = dict(mw=50,
                 sigma_nucleon=1e-45,
+                save_cache=False,
+                load_cache=False,
                 )
     def test_elastic(self):
         ref = 30.39515403337126
