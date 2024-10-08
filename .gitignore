@@ -1,3 +1,6 @@
+# Notebooks in root dir
+/*.ipynb
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -73,3 +76,5 @@ target/
 
 # Temp
 notebooks/dm_e
+
+!notebooks/*.png

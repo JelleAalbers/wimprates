@@ -67,6 +67,17 @@ def j2000_from_ymd(year, month, day_of_month):
             + np.floor(30.61 * (m + 1))
             + day_of_month - 730563.5)
 
+@export
+def j2000_to_datetime(j2000_date):
+    """
+    Returns date in np.datetime64 instance from the fractional number of days since J2000.0 epoch.
+    It is effectively the inverse of the j2000 function.
+    """
+    zero_value = pd.to_datetime("2000-01-01T12:00").value
+
+    nanoseconds_per_day = nu.day / nu.ns
+    _date = pd.to_datetime(j2000_date * nanoseconds_per_day).value
+    return pd.to_datetime(_date + zero_value).round("s")
 
 @export
 def earth_velocity(t, v_0 = None):
