@@ -76,3 +76,5 @@ target/
 
 # Temp
 notebooks/dm_e
+
+!notebooks/*.png
