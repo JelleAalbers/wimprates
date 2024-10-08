@@ -95,14 +95,15 @@ def _default_shells(material: str) -> tuple[str]:
 
 
 def _create_cox_probability_function(
-    element: str,
+    element,
+    orbital: str,
     dipole: bool = False,
 ) -> Callable[..., np.ndarray[Any, Any]]:
 
     fn_name = "dpI1dipole" if dipole else "dpI1"
     fn = getattr(element, fn_name)
 
-    return fn
+    return partial(fn, orbital=orbital)
 
 
 @export
@@ -147,7 +148,7 @@ def get_migdal_transitions_probability_iterators(
                     6.1e1,
                     2.1e1,
                     9.8,
-                ]
+                ],
             ),
             Ar=np.array([3.2e3, 3.0e2, 2.4e2, 2.7e1, 1.3e1]),
             Ge=np.array([1.1e4, 1.4e3, 1.2e3, 1.7e2, 1.2e2, 3.5e1, 1.5e1, 6.5e0]),
@@ -191,6 +192,7 @@ def get_migdal_transitions_probability_iterators(
                     model,
                     single_ionization_probability=_create_cox_probability_function(
                         element,
+                        state,
                         dipole=dipole,
                     ),
                 )
@@ -274,7 +276,7 @@ def get_diff_rate(
                     )
                     * v
                     * halo_model.velocity_dist(v, t)
-                    * shell(input_points, shell.name) / nu.keV
+                    * shell(input_points) / nu.keV
                 )
 
         # Note dblquad expects the function to be f(y, x), not f(x, y)...
