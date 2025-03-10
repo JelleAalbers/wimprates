@@ -5,7 +5,7 @@ import numericalunits as nu
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
-from scipy.integrate import dblquad
+from scipy import integrate
 from functools import lru_cache
 from fnmatch import fnmatch
 import wimprates as wr
@@ -77,8 +77,8 @@ def vmin_migdal(w, erec, mw, material):
 @wr.vectorize_first
 def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
                 include_approx_nr=False, q_nr=0.15, material="Xe",
-                t=None, halo_model=None, consider_shells=None,
-                **kwargs):
+                t=None, halo_model=wr.STANDARD_HALO_MODEL,
+                consider_shells=None, **kwargs):
     """Differential rate per unit detector mass and deposited ER energy of
     Migdal effect WIMP-nucleus scattering
 
@@ -108,13 +108,13 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
     Further kwargs are passed to scipy.integrate.quad numeric integrator
     (e.g. error tolerance).
     """
-    halo_model = wr.StandardHaloModel() if halo_model is None else halo_model
     include_approx_nr = 1 if include_approx_nr else 0
 
-    result = 0
     df_migdal, binding_es_for_migdal = read_migdal_transitions(material=material)
     if consider_shells is None:
         consider_shells = _default_shells(material)
+
+    result = 0
     for state, binding_e in binding_es_for_migdal.items():
         binding_e *= nu.eV
         if not any(fnmatch(state, take) for take in consider_shells):
@@ -126,40 +126,47 @@ def rate_migdal(w, mw, sigma_nucleon, interaction='SI', m_med=float('inf'),
                      bounds_error=False,
                      fill_value=0)
 
-        def diff_rate(v, erec):
+        def diff_rate(erec):
+            # Minimum velocity to deposit any energy
+            vmin = vmin_migdal(
+                w=w - include_approx_nr * erec * q_nr,
+                erec=erec,
+                mw=mw,
+                material=material,
+            )
+
             # Observed energy = energy of emitted electron
             #                 + binding energy of state
             eelec = w - binding_e - include_approx_nr * erec * q_nr
+
             if eelec < 0:
                 return 0
 
             return (
-                # Usual elastic differential rate,
-                # common constants follow at end
-                wr.sigma_erec(erec, v, mw, sigma_nucleon, interaction,
-                              m_med=m_med, material = material)
-                * v * halo_model.velocity_dist(v, t)
-
+                # Common constants
+                halo_model.rho_dm / mw
+                * (1 / wr.mn(material))
+                # Usual elastic differential rate
+                * wr.sigma_erec(
+                    erec,
+                    # Factoring out v-dependence as inverse mean speed
+                    v=1,
+                    mw=mw,
+                    sigma_nucleon=sigma_nucleon,
+                    interaction=interaction,
+                    m_med=m_med,
+                    material = material)
+                * halo_model.inverse_mean_speed(vmin, t)
                 # Migdal effect |Z|^2
                 # TODO: ?? what is explicit (eV/c)**2 doing here?
                 * (nu.me * (2 * erec / wr.mn(material))**0.5 / (nu.eV / nu.c0))**2
                 / (2 * np.pi)
                 * p(eelec))
 
-        # Note dblquad expects the function to be f(y, x), not f(x, y)...
-        r = dblquad(
+        result += integrate.quad(
             diff_rate,
             0,
-            wr.e_max(mw, wr.v_max(t, halo_model.v_esc), wr.mn(material)),
-            lambda erec: vmin_migdal(
-                w=w - include_approx_nr * erec * q_nr,
-                erec=erec,
-                mw=mw,
-                material=material,
-            ),
-            lambda _: wr.v_max(t, halo_model.v_esc),
+            wr.e_max(mw, halo_model.v_max(t), wr.mn(material)),
             **kwargs)[0]
 
-        result += r
-
-    return halo_model.rho_dm / mw * (1 / wr.mn(material)) * result
+    return result
