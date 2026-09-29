@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import pandas as pd
-from wimprates import j2000, StandardHaloModel, j2000_from_ymd
+from wimprates import j2000, StandardHaloModel, HaloModelInterpolatedFromFile, j2000_from_ymd
 import numericalunits as nu
 import numpy as np
 
@@ -11,6 +11,10 @@ def test_shm_values():
     assert np.abs(halo_model.v_0 /(nu.km/nu.s) - 238.)<1e-6
     assert np.abs(halo_model.v_esc /(nu.km/nu.s) - 544.)<1e-6
 
+def test_nhm_values():
+    halo_modeln=HaloModelInterpolatedFromFile(Filename="../wimprates/data/dataMW1/FourCoefs.txt")
+    assert np.abs(halo_modeln.v_0 /(nu.km/nu.s) - 238.)<1e-6
+    assert np.abs(halo_modeln.v_esc /(nu.km/nu.s) - 544.)<1e-6
 
 def test_j2000():
     assert j2000_from_ymd(2009, 1, 31.75) == 3318.25
